@@ -1,0 +1,16 @@
+spring:
+  ai:
+    model:
+      chat: ollama
+      embedding: ollama
+    ollama:
+      base-url: ${SPRING_AI_OLLAMA_BASE_URL:http://localhost:11434}
+      chat:
+        options:
+          model: gemma4:12b
+          temperature: 0.1
+      embedding:
+        model: bge-m3
+    vectorstore:
+      pgvector:
+        dimensions: 1024
