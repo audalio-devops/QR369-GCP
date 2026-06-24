@@ -11,11 +11,11 @@
 		<relativePath/>
 	</parent>
 
-	<groupId>br.com.devsuperior</groupId>
+	<groupId>br.com.ia369</groupId>
 	<artifactId>prospecting-service</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>vacation-service</name>
-	<description>Microservico de ferias por colaborador para o hr-assistant</description>
+	<name>prospecting-service</name>
+	<description>Microservico de prospeccao de propostas</description>
 
 	<properties>
 		<java.version>25</java.version>
