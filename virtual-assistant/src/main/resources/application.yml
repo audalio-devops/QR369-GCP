@@ -24,6 +24,9 @@ app:
     similarity-threshold: 0.2          # piso de similaridade do retrieval
   memory:
     max-messages: 20                   # tamanho da janela do MessageWindowChatMemory
+  zapi:
+    api-url: "https://api.z-api.io/instances/3F54953CDE8E5158EB4A26931B1E6087/token/7DFF6C879B7B5B0058AB4B75"
+    send-message-endpoint: "/send-text"
 
 # nivel DEBUG apenas para o advisor que loga prompt (IDA) e resposta (VOLTA)
 logging:

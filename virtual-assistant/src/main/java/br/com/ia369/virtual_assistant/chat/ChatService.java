@@ -18,13 +18,23 @@ public class ChatService {
         this.chatClient = chatClient;
     }
 
+    public String chat(String message, String conversationId) {
+        logger.info("[conversationId={}] Iniciando chat (mensagem com {} caracteres)",
+                conversationId, message.length());
+
+        return chatClient.prompt()
+                .user(message)
+                .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, conversationId))
+                .call()
+                .content();
+    }
+
     public Flux<String> stream(String message, String conversationId) {
         logger.info("[conversationId={}] Iniciando stream de chat (mensagem com {} caracteres)",
                 conversationId, message.length());
         return chatClient.prompt()
                 .user(message)
                 .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, conversationId))
-                // ou .call() aqui abaixo para esperar todo conteúdo.
                 .stream()
                 .content()
                 .doOnComplete(() -> logger.info("[conversationId={}] Stream de chat concluido com sucesso",

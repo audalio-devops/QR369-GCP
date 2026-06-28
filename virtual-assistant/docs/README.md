@@ -4,50 +4,80 @@
 
 Este é um aplicativo Spring Boot que funciona como um assistente virtual, utilizando o Spring AI para se integrar a vários modelos de IA. O projeto foi construído para ser uma base para assistentes de conversação inteligentes que podem ser aprimorados com conhecimento de documentos específicos através da técnica de Retrieval-Augmented Generation (RAG).
 
+A interação com o assistente é feita através do WhatsApp, utilizando a Z-API como camada de comunicação.
+
 ## Tecnologias Principais
 
-- **Spring Boot:** Estrutura principal do aplicativo, simplificando a configuração e o desenvolvimento.
-- **Spring AI:** Facilita a integração e o uso de diversos modelos de IA. O projeto está configurado para usar:
-  - **Anthropic:** Um modelo de linguagem poderoso.
-  - **Ollama:** Permite a execução de modelos de código aberto localmente.
-  - **Transformers:** Para utilizar modelos do Hugging Face Hub.
-- **Spring Data Redis:** Utilizado para armazenamento de dados em memória, especificamente para gerenciar o histórico de bate-papo e manter o contexto da conversa.
-- **PgVector + PostgreSQL:** Fornece um banco de dados vetorial para armazenar e consultar embeddings de documentos, sendo um componente essencial para a implementação de RAG.
-- **Apache Tika:** Usado para extrair texto de diversos formatos de documentos durante o processo de ingestão de dados.
-- **Maven:** Ferramenta de compilação e gerenciamento de dependências do projeto.
-- **Docker:** O arquivo `docker-compose.yml` indica que o ambiente de desenvolvimento, incluindo serviços como PostgreSQL e Redis, pode ser facilmente gerenciado com contêineres.
+- **Spring Boot:** Estrutura principal do aplicativo.
+- **Spring AI:** Facilita a integração com modelos de IA (Anthropic, Ollama, etc.).
+- **Z-API:** Camada de abstração para comunicação com o WhatsApp.
+- **Spring Data Redis:** Utilizado para gerenciar o histórico de bate-papo.
+- **PgVector + PostgreSQL:** Banco de dados vetorial para RAG.
+- **Apache Tika:** Para extração de texto de documentos.
+- **Maven:** Gerenciamento de dependências.
+- **Docker:** Para gerenciamento do ambiente de desenvolvimento.
 
 ## Arquitetura
 
-A aplicação segue uma estrutura padrão de projetos Spring Boot, organizada nos seguintes pacotes:
+A aplicação segue uma estrutura padrão de projetos Spring Boot:
 
-- **`br.com.ia369.virtual_assistant`**: Pacote raiz da aplicação.
-  - **`VirtualAssistantApplication.java`**: Ponto de entrada que inicializa a aplicação Spring Boot.
-  - **`config`**: Contém as classes de configuração para os beans do Spring, como clientes de IA, conexão com o banco de dados e outras configurações de serviço.
-  - **`chat`**: Responsável pela lógica de interação do bate-papo. Inclui controllers para os endpoints da API, services para processar as mensagens e a lógica de conversação.
-  - **`ingestion`**: Contém a lógica para o pipeline de ingestão de dados. Este pacote é crucial para a funcionalidade de RAG, lidando com a leitura de documentos, criação de embeddings e armazenamento no banco de dados vetorial.
-  - **`ferias`**: Provavelmente relacionado a uma funcionalidade de negócio específica do assistente, como um chatbot para responder a perguntas sobre o processo de férias de uma empresa.
+- **`br.com.ia369.virtual_assistant`**: Pacote raiz.
+  - **`VirtualAssistantApplication.java`**: Ponto de entrada da aplicação.
+  - **`config`**: Classes de configuração do Spring.
+  - **`chat`**: Lógica de negócio principal para processamento de chat com IA.
+  - **`ingestion`**: Pipeline de ingestão de dados para RAG.
+  - **`whatsapp`**: Pacote responsável pela comunicação com a Z-API.
+    - **`dto`**: Data Transfer Objects para os payloads da Z-API.
+    - **`WhatsAppWebhookController`**: Endpoint que recebe as mensagens do WhatsApp via webhook.
+    - **`ZApiClientService`**: Cliente HTTP para enviar mensagens de volta para o usuário via Z-API.
+  - **`ferias`**: Exemplo de funcionalidade de negócio específica.
 
 ## Fluxo de Funcionamento
 
-1.  **Inicialização:**
-    - A aplicação é iniciada através da classe `VirtualAssistantApplication`.
-    - O Spring Boot autoconfigura os beans com base nas dependências e configurações definidas.
+O fluxo de interação é assíncrono e orientado a eventos, utilizando webhooks.
 
-2.  **Ingestão de Dados (RAG):**
-    - O serviço no pacote `ingestion` é acionado (pode ser por um endpoint de API ou durante a inicialização).
-    - Ele lê documentos de uma fonte configurada (por exemplo, um diretório local).
-    - O Apache Tika é usado para extrair o conteúdo de texto dos documentos.
-    - O texto extraído é dividido em pedaços (chunks) e, para cada pedaço, um embedding vetorial é gerado usando um dos modelos de IA configurados.
-    - Esses embeddings, juntamente com o texto original, são armazenados na tabela do PostgreSQL com a extensão PgVector.
+1.  **Cliente Envia Mensagem no WhatsApp:**
+    - O usuário inicia a conversa enviando uma mensagem para o número de WhatsApp associado.
 
-3.  **Interação de Bate-papo:**
-    - Um usuário envia uma pergunta para a API do assistente virtual (provavelmente um endpoint no pacote `chat`).
-    - A aplicação primeiro converte a pergunta do usuário em um embedding vetorial.
-    - Em seguida, ela consulta o banco de dados PgVector para encontrar os documentos (ou pedaços de texto) cujos embeddings são mais semelhantes à pergunta do usuário. Este é o passo de "Retrieval" (Recuperação).
-    - A pergunta original do usuário e o contexto recuperado do banco de dados são combinados em um prompt.
-    - Este prompt é enviado para um dos modelos de IA (Anthropic, Ollama, etc.) para gerar uma resposta.
-    - A resposta gerada pelo modelo é retornada ao usuário através da API.
-    - O histórico da conversa pode ser armazenado no Redis para manter o contexto em interações futuras.
+2.  **Z-API Recebe e Encaminha via Webhook:**
+    - A Z-API recebe a mensagem e a envia para o endpoint de webhook configurado no projeto `virtual-assistant` (`/webhooks/zapi`).
 
-Este fluxo permite que o assistente virtual responda a perguntas com base em uma base de conhecimento privada, tornando-o muito mais poderoso e útil para casos de uso específicos.
+3.  **Processamento no `virtual-assistant`:**
+    - O `WhatsAppWebhookController` recebe o payload da Z-API.
+    - Ele extrai a mensagem e o número de telefone do usuário.
+    - O `ChatService` é chamado, utilizando o número de telefone como `conversationId` para manter o contexto.
+    - O `ChatService` executa a lógica de RAG (se necessário) e chama o modelo de IA configurado para gerar uma resposta.
+
+4.  **Envio da Resposta ao Cliente:**
+    - Com a resposta gerada pela IA, o `WhatsAppWebhookController` chama o `ZApiClientService`.
+    - O `ZApiClientService` faz uma chamada à API da Z-API para enviar a mensagem de resposta para o WhatsApp do cliente.
+
+Este fluxo permite que o assistente virtual converse com os usuários de forma natural através do WhatsApp, aproveitando todo o poder do backend de IA para fornecer respostas inteligentes e contextuais.
+
+## Como executar ##
+
+Configurar as variáveis de ambiente
+
+### Via cmd 
+set ANTHROPIC_API_KEY=valor_api_key
+set SPRING_PROFILES_ACTIVE=anthropic
+
+### Via PowerShell 
+`$env:ANTHROPIC_API_KEY = "valor_api_key"`
+`$env:SPRING_PROFILES_ACTIVE = "anthropic"`
+
+### Executar a aplicação (normal e background) 
+> java -jar target/virtual_assistant-0.0.1-SNAPSHOT.jar
+> javaw -jar target/virtual_assistant-0.0.1-SNAPSHOT.jar
+
+Utiliza o ngrok para tornar a URL localhost:8080 (chat do sistema) pública e visível na internet.
+> ngrok http 8080
+
+Docker executando e 3 containers rodando:
+* virtual-assistant-db        pgvector/pgvector:pg18      5432->5432/tcp
+* virtual-assistant-ollama    ollama/ollama:latest        11435->11434/tcp
+* virtual-assistant-redis     redis/redis-stack:latest    6379->6379/tcp
+
+Z-API com instãncias configuradas e mensalidade paga
+
+Claude API com crédito.
