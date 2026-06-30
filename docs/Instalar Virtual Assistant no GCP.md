@@ -74,6 +74,8 @@ No Console do GCP:
 
 ### **Passo 3: Implantar as Aplicações no Cloud Run**
 
+**Nota sobre Segredos:** Antes de rodar os comandos abaixo, crie um segredo no **GCP Secret Manager** chamado `ANTHROPIC_API_KEY` com o valor da sua chave da Anthropic.
+
 Execute estes comandos na sua máquina local. O `gcloud` fará a implantação no seu projeto na nuvem.
 
 1.  **Implantar `prospecting-service`:**
@@ -99,7 +101,9 @@ Execute estes comandos na sua máquina local. O `gcloud` fará a implantação n
       --set-env-vars="SPRING_AI_VECTORSTORE_PGVECTOR_DATASOURCE_USERNAME=postgres" \
       --set-env-vars="SPRING_AI_VECTORSTORE_PGVECTOR_DATASOURCE_PASSWORD=<SENHA_DO_CLOUD_SQL>" \
       --set-env-vars="SPRING_DATA_REDIS_HOST=<IP_DO_MEMORISTORE>" \
-      --set-env-vars="SPRING_DATA_REDIS_PORT=6379"
+      --set-env-vars="SPRING_DATA_REDIS_PORT=6379" \
+      --set-env-vars="SPRING_PROFILES_ACTIVE=anthropic" \
+      --set-secrets="ANTHROPIC_API_KEY=ANTHROPIC_API_KEY:latest"
     ```
 
     *Substitua `<IP_DO_CLOUD_SQL>`, `<SENHA_DO_CLOUD_SQL>` e `<IP_DO_MEMORISTORE>` pelos valores reais dos serviços que você criou no GCP.*

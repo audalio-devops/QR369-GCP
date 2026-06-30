@@ -2,6 +2,8 @@ package br.com.ia369.virtual_assistant.config;
 
 import java.time.Duration;
 
+import jakarta.annotation.PostConstruct;
+import org.slf4j.LoggerFactory;
 import br.com.ia369.virtual_assistant.chat.PromptLoggingAdvisor;
 import br.com.ia369.virtual_assistant.ferias.FeriasTools;
 import org.springframework.ai.chat.client.ChatClient;
@@ -22,6 +24,8 @@ import redis.clients.jedis.RedisClient;
 
 @Configuration
 public class ChatClientConfig {
+
+    private static final org.slf4j.Logger log = LoggerFactory.getLogger(ChatClientConfig.class);
 
     private static final String SYSTEM_PROMPT = """
     Você é o Fillipo, assistente virtual do Gustavo na QR Gold.
@@ -117,6 +121,18 @@ public class ChatClientConfig {
 
     @Value("${app.rag.similarity-threshold}")
     private double similarityThreshold;
+
+    @Value("${spring.ai.anthropic.api-key:NOT_FOUND}")
+    private String anthropicApiKey;
+
+    @PostConstruct
+    public void verifyConfig() {
+        if ("NOT_FOUND".equals(anthropicApiKey) || anthropicApiKey.isEmpty()) {
+            log.error("❌ ANTHROPIC_API_KEY não foi encontrada! O assistente não funcionará.");
+        } else {
+            log.info("✅ ANTHROPIC_API_KEY carregada com sucesso. (Inicia com: {}...)", anthropicApiKey.substring(0, Math.min(anthropicApiKey.length(), 7)));
+        }
+    }
 
     @Value("${spring.ai.chat.memory.redis.host:localhost}")
     private String redisHost;

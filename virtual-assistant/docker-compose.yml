@@ -1,4 +1,18 @@
+version: '3.3'
+
 services:
+  virtual-assistant:
+    image: virtual-assistant:latest
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    depends_on:
+      - db
+      - redis
+
   db:
     image: pgvector/pgvector:pg18
     container_name: virtual-assistant-db
