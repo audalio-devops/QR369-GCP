@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/ragdb
-    username: postgres
-    password: postgres
+    url: ${VA_DB_URL:jdbc:postgresql://localhost:5432/ragdb}
+    username: ${VA_DB_USERNAME:postgres}
+    password: ${VA_DB_PASSWORD:postgres}
   ai:
     vectorstore:
       pgvector:
@@ -13,8 +13,8 @@ spring:
     chat:
       memory:
         redis:
-          host: localhost
-          port: 6379
+          host: ${VA_REDIS_HOST:localhost}
+          port: ${VA_REDIS_PORT:6379}
           time-to-live: PT30M          # a conversa expira apos 30 min de inatividade
 
 # bloco proprio do projeto (nao e do framework)

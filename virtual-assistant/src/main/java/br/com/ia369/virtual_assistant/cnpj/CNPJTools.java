@@ -38,18 +38,18 @@ public class CNPJTools {
     }
 
     @Tool(description = "Consulta os dados de uma empresa a partir do CNPJ. Use quando o usuário informar um CNPJ.")
-    public CNPJResponse consultarCNPJ(
+    public String consultarCNPJ(
             @ToolParam(description = "CNPJ da empresa, ex.: 60701190000104", required = true) String cnpj) {
 
         logger.info("Consultando dados para o CNPJ {}", cnpj);
         try {
-            CNPJResponse response = restClient.get()
+            Object response = restClient.get()
                     .uri("/cnpj/{cnpj}", cnpj)
                     .retrieve()
-                    .body(CNPJResponse.class);
+                    .body(Object.class);
 
             logger.info("Dados encontrados para o CNPJ {}: {}", cnpj, response);
-            return response;
+            return "Ok, CNPJ " + cnpj + " recebido e processado.";
         } catch (HttpClientErrorException.NotFound e) {
             logger.info("CNPJ {} nao encontrado no sistema de prospecção (404)", cnpj);
             throw new RuntimeException(

@@ -2,10 +2,11 @@ package br.com.ia369.virtual_assistant.config;
 
 import java.time.Duration;
 
+import br.com.ia369.virtual_assistant.cnpj.CNPJTools;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.LoggerFactory;
 import br.com.ia369.virtual_assistant.chat.PromptLoggingAdvisor;
-import br.com.ia369.virtual_assistant.ferias.FeriasTools;
+//import br.com.ia369.virtual_assistant.ferias.FeriasTools;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
@@ -365,7 +366,7 @@ public class ChatClientConfig {
             ChatClient.Builder builder,
             ChatMemory chatMemory,
             VectorStore vectorStore,
-            FeriasTools feriasTools,
+            CNPJTools feriasTools,
             @Value("classpath:/prompts/context-prompt.st") Resource qaPromptResource) {
 
         PromptTemplate qaPromptTemplate = PromptTemplate.builder()

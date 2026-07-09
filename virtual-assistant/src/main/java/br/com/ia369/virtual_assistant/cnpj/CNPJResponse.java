@@ -1,4 +1,4 @@
-package br.com.ia369.prospecting_service.dto;
+package br.com.ia369.virtual_assistant.cnpj;
 
 import java.time.LocalDate;
 
