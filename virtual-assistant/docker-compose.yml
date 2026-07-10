@@ -19,14 +19,14 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_DB: ragdb
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: ${VA_DB_USERNAME}
+      POSTGRES_PASSWORD: ${VA_DB_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d ragdb"]
+      test: [ "CMD-SHELL", "pg_isready -U ${VA_DB_USERNAME} -d ragdb" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -36,12 +36,12 @@ services:
     container_name: virtual-assistant-redis
     restart: unless-stopped
     ports:
-      - "6379:6379"   # porta do Redis
-      - "8001:8001"   # RedisInsight (UI web)
+      - "6379:6379" # porta do Redis
+      - "8001:8001" # RedisInsight (UI web)
     volumes:
       - redisdata:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -55,7 +55,7 @@ services:
     volumes:
       - ollama:/root/.ollama
     # sobe o servidor, espera ficar pronto, garante o bge-m3 e segue servindo
-    entrypoint: ["/bin/sh", "-c"]
+    entrypoint: [ "/bin/sh", "-c" ]
     command:
       - |
         ollama serve &
@@ -65,7 +65,7 @@ services:
         wait $$pid
     healthcheck:
       # so fica saudavel quando o modelo ja esta disponivel (evita race no ingest)
-      test: ["CMD-SHELL", "ollama list 2>/dev/null | grep -q bge-m3 || exit 1"]
+      test: [ "CMD-SHELL", "ollama list 2>/dev/null | grep -q bge-m3 || exit 1" ]
       interval: 10s
       timeout: 5s
       retries: 10
