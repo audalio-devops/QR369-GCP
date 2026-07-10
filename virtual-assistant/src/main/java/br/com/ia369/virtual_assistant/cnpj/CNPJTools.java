@@ -43,13 +43,13 @@ public class CNPJTools {
 
         logger.info("Consultando dados para o CNPJ {}", cnpj);
         try {
-            Object response = restClient.get()
+            CNPJResponse response = restClient.get()
                     .uri("/cnpj/{cnpj}", cnpj)
                     .retrieve()
-                    .body(Object.class);
+                    .body(CNPJResponse.class);
 
             logger.info("Dados encontrados para o CNPJ {}: {}", cnpj, response);
-            return "Ok, CNPJ " + cnpj + " recebido e processado.";
+            return "Recebeu o CNPJ " + response.cnpj() + " da Razão Social " + response.razaoSocial();
         } catch (HttpClientErrorException.NotFound e) {
             logger.info("CNPJ {} nao encontrado no sistema de prospecção (404)", cnpj);
             throw new RuntimeException(

@@ -5,13 +5,13 @@ spring:
   application:
     name: prospecting-service
   datasource:
-    url: jdbc:h2:mem:prospectingdb
+    url: jdbc:h2:mem:cnpjdb
     driver-class-name: org.h2.Driver
     username: sa
     password:
   h2:
     console:
-      enabled: true
+      enabled: false
   jpa:
     hibernate:
       ddl-auto: update

@@ -17,6 +17,7 @@ services:
       VA_DB_PASSWORD: ${VA_DB_PASSWORD}
       VA_REDIS_HOST: ${VA_REDIS_HOST}
       VA_REDIS_PORT: ${VA_REDIS_PORT}
+      APP_PROSPECTING_BASE_URL: http://prospecting-service:8081
     depends_on:
       db:
         condition: service_healthy
@@ -91,8 +92,8 @@ services:
       test: [ "CMD-SHELL", "ollama list 2>/dev/null | grep -q bge-m3 || exit 1" ]
       interval: 10s
       timeout: 5s
-      retries: 10
-      start_period: 60s
+      retries: 30
+      start_period: 300s
 
 volumes:
   pgdata:
