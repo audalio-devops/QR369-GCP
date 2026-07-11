@@ -1,258 +1,117 @@
-# Migração: Férias → CNPJ no `prospecting-service`
+# Plano de Sprints: Unificação do Serviço de Prospecção de CNPJ
 
-## Objetivo
-
-Substituir a funcionalidade de consulta de férias (banco H2 em memória, entidade [Ferias](file:///c:/Projetos/IA369/QR369-GCP/prospecting-service/src/main/java/br/com/ia369/prospecting_service/entity/Ferias.java#13-81)) por uma funcionalidade de consulta e cadastro de CNPJs a serem prospectados. O serviço deve expor o endpoint `GET /cnpj/{cnpj}` — que é exatamente o que [CNPJTools.java](file:///c:/Projetos/IA369/QR369-GCP/virtual-assistant/src/main/java/br/com/ia369/virtual_assistant/cnpj/CNPJTools.java) do `virtual-assistant` já chama.
+Este documento detalha o plano de desenvolvimento para unificar as funcionalidades do projeto `Propect369` dentro do `prospecting-service`. O trabalho será dividido em 5 Sprints, cada uma com um objetivo claro e entregáveis definidos.
 
 ---
 
-## Visão Geral do Estado Atual vs. Desejado
+## Sprint 1: Configuração do Ambiente e Base de Dados
 
-| Camada | Hoje ([Ferias](file:///c:/Projetos/IA369/QR369-GCP/prospecting-service/src/main/java/br/com/ia369/prospecting_service/entity/Ferias.java#13-81)) | Após migração ([CNPJ](file:///c:/Projetos/IA369/QR369-GCP/virtual-assistant/src/main/java/br/com/ia369/virtual_assistant/cnpj/CNPJTools.java#18-65)) |
-|---|---|---|
-| Entidade JPA | [Ferias](file:///c:/Projetos/IA369/QR369-GCP/prospecting-service/src/main/java/br/com/ia369/prospecting_service/entity/Ferias.java#13-81) → `tb_ferias` | `Cnpj` → `tb_cnpj` |
-| Repositório | [FeriasRepository](file:///c:/Projetos/IA369/QR369-GCP/prospecting-service/src/main/java/br/com/ia369/prospecting_service/repository/FeriasRepository.java#8-13) | `CnpjRepository` |
-| DTO de resposta | [FeriasResponse](file:///c:/Projetos/IA369/QR369-GCP/prospecting-service/src/main/java/br/com/ia369/prospecting_service/dto/FeriasResponse.java#7-20) | [CNPJResponse](file:///c:/Projetos/IA369/QR369-GCP/virtual-assistant/src/main/java/br/com/ia369/virtual_assistant/cnpj/CNPJResponse.java#5-22) (já existe!) |
-| Controller | [FeriasController](file:///c:/Projetos/IA369/QR369-GCP/prospecting-service/src/main/java/br/com/ia369/prospecting_service/controller/FeriasController.java#13-39) → `GET /ferias/{matricula}` | `CnpjController` → `GET /cnpj/{cnpj}` |
-| Seed de dados | [DataSeeder](file:///c:/Projetos/IA369/QR369-GCP/prospecting-service/src/main/java/br/com/ia369/prospecting_service/config/DataSeeder.java#14-40) (férias hardcoded) | `CnpjDataSeeder` (CNPJs de exemplo) |
-| Banco | H2 in-memory | **H2 mantido** (simples, não exige infra extra) |
+**Meta da Sprint:** Preparar o `prospecting-service` para se conectar ao banco de dados PostgreSQL, abandonando o H2, e garantir que o ambiente de desenvolvimento esteja pronto para as próximas fases.
 
----
+**Histórias de Usuário / Tarefas:**
 
-## Proposed Changes
+1.  **Como desenvolvedor, quero adicionar o driver do PostgreSQL ao projeto** para que a aplicação possa se comunicar com o banco de dados.
+    *   **Tarefa:** Adicionar a dependência `org.postgresql:postgresql` ao arquivo `pom.xml`.
 
-### Limpeza — arquivos a remover
+2.  **Como desenvolvedor, quero configurar a conexão com o banco de dados PostgreSQL no arquivo de configuração** para que o serviço se conecte à instância correta do banco de dados ao invés do H2.
+    *   **Tarefa:** Alterar o `application.yml` para remover as configurações do H2 e adicionar a URL, driver, usuário e senha para a conexão com o PostgreSQL (`jdbc:postgresql://db:5432/ragdb`).
 
-#### [DELETE] [Ferias.java](file:///c:/Projetos/IA369/QR369-GCP/prospecting-service/src/main/java/br/com/ia369/prospecting_service/entity/Ferias.java)
-#### [DELETE] [FeriasRepository.java](file:///c:/Projetos/IA369/QR369-GCP/prospecting-service/src/main/java/br/com/ia369/prospecting_service/repository/FeriasRepository.java)
-#### [DELETE] [FeriasController.java](file:///c:/Projetos/IA369/QR369-GCP/prospecting-service/src/main/java/br/com/ia369/prospecting_service/controller/FeriasController.java)
-#### [DELETE] [FeriasResponse.java](file:///c:/Projetos/IA369/QR369-GCP/prospecting-service/src/main/java/br/com/ia369/prospecting_service/dto/FeriasResponse.java)
-#### [DELETE] [DataSeeder.java](file:///c:/Projetos/IA369/QR369-GCP/prospecting-service/src/main/java/br/com/ia369/prospecting_service/config/DataSeeder.java)
+3.  **Como desenvolvedor, quero que a aplicação inicie sem erros com as novas configurações de banco de dados** para validar que a conexão com o PostgreSQL foi estabelecida corretamente.
+    *   **Tarefa:** Executar a aplicação e verificar os logs para confirmar a conexão bem-sucedida com o pool de conexões do PostgreSQL.
+
+**Critérios de Aceitação:**
+*   O projeto compila e executa sem erros.
+*   Nos logs de inicialização, o Spring Boot deve mostrar que está se conectando ao banco de dados PostgreSQL.
+*   Qualquer referência ao banco de dados H2 deve ter sido removida da configuração ativa.
 
 ---
 
-### Camada de domínio
+## Sprint 2: Criação das Entidades e Repositórios JPA
 
-#### [MODIFY] [CNPJResponse.java](file:///c:/Projetos/IA369/QR369-GCP/prospecting-service/src/main/java/br/com/ia369/prospecting_service/dto/CNPJResponse.java)
+**Meta da Sprint:** Definir o modelo de dados da aplicação através de entidades JPA e criar as interfaces de repositório para permitir a interação com o banco de dados.
 
-Já existe e já tem os campos corretos. Nenhuma alteração necessária.
+**Histórias de Usuário / Tarefas:**
 
-#### [NEW] `entity/Cnpj.java`
+1.  **Como sistema, preciso de uma tabela para armazenar os dados detalhados das empresas**, então quero criar a entidade `Empresa.java`.
+    *   **Tarefa:** Criar a classe `Empresa.java` no pacote `entity`, mapeando-a para a tabela `empresas`. Os campos devem ser baseados na estrutura de dados da BrasilAPI, e o CNPJ deve ser a chave primária (`@Id`).
 
-Entidade JPA mapeando a tabela `tb_cnpj`. Campos espelham [CNPJResponse](file:///c:/Projetos/IA369/QR369-GCP/virtual-assistant/src/main/java/br/com/ia369/virtual_assistant/cnpj/CNPJResponse.java#5-22):
+2.  **Como desenvolvedor, quero uma forma fácil de acessar os dados das empresas**, então quero criar o repositório `EmpresaRepository.java`.
+    *   **Tarefa:** Criar a interface `EmpresaRepository.java` no pacote `repository`, estendendo `JpaRepository<Empresa, String>`.
 
-```java
-@Entity
-@Table(name = "tb_cnpj")
-public class Cnpj {
-    @Id
-    @Column(unique = true, nullable = false, length = 14)
-    private String cnpj;         // PK natural — o próprio número de CNPJ
+3.  **Como sistema, preciso de uma tabela para listar os CNPJs que devem ser processados em lote**, então quero criar a entidade `BuscaCnpj.java`.
+    *   **Tarefa:** Criar a classe `BuscaCnpj.java` no pacote `entity`, com campos como `id` e `cnpj`.
 
-    private String razaoSocial;
-    private String nomeFantasia;
-    private String situacaoCadastral;
-    private LocalDate dataAbertura;
-    private String ddd;
-    private String telefone;
-    private String email;
-    private String logradouro;
-    private String numero;
-    private String complemento;
-    private String bairro;
-    private String cidade;
-    private String uf;
-    private String cep;
-    // getters/setters ou usar Java Records não é possível aqui (JPA precisa de classe mutável)
-}
-```
+4.  **Como desenvolvedor, quero uma forma de ler a lista de CNPJs a serem buscados**, então quero criar o repositório `BuscaCnpjRepository.java`.
+    *   **Tarefa:** Criar a interface `BuscaCnpjRepository.java` no pacote `repository`, estendendo `JpaRepository<BuscaCnpj, Long>`.
 
-> [!NOTE]
-> O CNPJ é usado como chave primária natural (string de 14 dígitos), evitando uma coluna `id` desnecessária.
+**Critérios de Aceitação:**
+*   A aplicação inicia e, com `ddl-auto: update`, as tabelas `empresas` e `busca_cnpj` são criadas ou atualizadas no banco de dados PostgreSQL.
+*   As interfaces de repositório estão prontas para serem injetadas em outros serviços.
 
 ---
 
-### Camada de repositório
+## Sprint 3: Migração e Adaptação da Lógica de Negócio
 
-#### [NEW] `repository/CnpjRepository.java`
+**Meta da Sprint:** Implementar a lógica central de prospecção, combinando a busca em banco de dados com a consulta a APIs externas quando necessário (padrão Cache-Aside).
 
-```java
-public interface CnpjRepository extends JpaRepository<Cnpj, String> {
-    // findById(cnpj) já é fornecido pelo JpaRepository — nenhum método extra necessário.
-}
-```
+**Histórias de Usuário / Tarefas:**
 
----
+1.  **Como desenvolvedor, quero isolar a lógica de chamadas a APIs externas**, então quero criar um serviço `ApiCnpjClient`.
+    *   **Tarefa:** Criar um novo `@Service` chamado `ApiCnpjClient`. Migrar a lógica de chamada HTTP do `Propect369` para este serviço, preferencialmente usando o `RestClient` do Spring.
 
-### Camada de serviço (opcional, recomendado)
+2.  **Como sistema, ao consultar um CNPJ, quero primeiro verificar se ele já existe no meu banco de dados antes de consultar uma API externa**, então quero refatorar o `CnpjService`.
+    *   **Tarefa:** Injetar `EmpresaRepository` e `ApiCnpjClient` no `CnpjService`.
+    *   **Tarefa:** Modificar o método `buscarPorCnpj(String cnpj)` para:
+        1.  Buscar no `EmpresaRepository`.
+        2.  Se encontrar, retornar o resultado (Cache Hit).
+        3.  Se não encontrar (Cache Miss), chamar o `ApiCnpjClient`.
+        4.  Se o `ApiCnpjClient` retornar dados, salvá-los no banco através do `EmpresaRepository` e então retornar os dados.
+        5.  Se não encontrar em lugar nenhum, retornar um `Optional` vazio.
 
-#### [NEW] `service/CnpjService.java`
-
-Encapsula a lógica de negócio, deixando o controller fino:
-
-```java
-@Service
-public class CnpjService {
-    private final CnpjRepository repository;
-
-    public Optional<CNPJResponse> buscarPorCnpj(String cnpj) {
-        return repository.findById(cnpj).map(this::toResponse);
-    }
-
-    private CNPJResponse toResponse(Cnpj c) {
-        return new CNPJResponse(c.getCnpj(), c.getRazaoSocial(), ...);
-    }
-}
-```
+**Critérios de Aceitação:**
+*   Ao chamar o endpoint `GET /cnpj/{cnpj}` pela primeira vez, os logs devem mostrar uma chamada para a API externa, seguida por uma inserção no banco de dados.
+*   Ao chamar o mesmo endpoint uma segunda vez, os logs devem mostrar apenas uma consulta ao banco de dados, sem chamadas a APIs externas.
+*   Se um CNPJ não existe, o endpoint deve retornar HTTP 404.
 
 ---
 
-### Camada de controller
+## Sprint 4: Implementação dos Novos Modos de Consulta
 
-#### [DELETE] [FeriasController.java](file:///c:/Projetos/IA369/QR369-GCP/prospecting-service/src/main/java/br/com/ia369/prospecting_service/controller/FeriasController.java)
+**Meta da Sprint:** Adicionar as funcionalidades de prospecção em lote e agendada, tornando o serviço proativo na coleta de dados.
 
-#### [NEW] `controller/CnpjController.java`
+**Histórias de Usuário / Tarefas:**
 
-```java
-@RestController
-@RequestMapping("/cnpj")
-public class CnpjController {
+1.  **Como usuário, quero poder disparar a prospecção de uma lista de CNPJs de uma só vez**, então quero um endpoint para processamento em lote.
+    *   **Tarefa:** Criar um método `processarLoteDeCnpjs()` no `CnpjService` que lê todos os CNPJs da tabela `busca_cnpj` e chama o método `buscarPorCnpj()` para cada um.
+    *   **Tarefa:** Criar um novo endpoint, `POST /cnpj/processar-lote`, no `CnpjController` que aciona o método acima.
 
-    @GetMapping("/{cnpj}")
-    public ResponseEntity<CNPJResponse> buscarPorCnpj(@PathVariable String cnpj) {
-        return cnpjService.buscarPorCnpj(cnpj)
-            .map(ResponseEntity::ok)
-            .orElse(ResponseEntity.notFound().build());
-    }
-}
-```
+2.  **Como sistema, quero executar a prospecção em lote automaticamente todos os dias**, então quero implementar uma rotina agendada.
+    *   **Tarefa:** Adicionar a anotação `@EnableScheduling` na classe principal da aplicação.
+    *   **Tarefa:** Criar um novo componente, `ScheduledProspectingTask`, com um método anotado com `@Scheduled(cron = "...")`.
+    *   **Tarefa:** O método agendado deve invocar o `cnpjService.processarLoteDeCnpjs()`.
 
-> [!IMPORTANT]
-> O path `/cnpj/{cnpj}` é o exato contrato que [CNPJTools.java](file:///c:/Projetos/IA369/QR369-GCP/virtual-assistant/src/main/java/br/com/ia369/virtual_assistant/cnpj/CNPJTools.java) do `virtual-assistant` já chama:
-> `.uri("/cnpj/{cnpj}", cnpj)`. Não alterar esse path.
+**Critérios de Aceitação:**
+*   Uma requisição `POST` para `/cnpj/processar-lote` aciona a busca para todos os CNPJs presentes na tabela `busca_cnpj`.
+*   A tarefa agendada é executada no horário configurado, e os logs mostram o início e o fim do processamento em lote.
 
 ---
 
-### Seed de dados
+## Sprint 5: Finalização, Testes e Documentação
 
-#### [MODIFY] [DataSeeder.java](file:///c:/Projetos/IA369/QR369-GCP/prospecting-service/src/main/java/br/com/ia369/prospecting_service/config/DataSeeder.java)
+**Meta da Sprint:** Polir a aplicação, garantir a qualidade através de testes, limpar o código e documentar as novas funcionalidades para que o serviço esteja pronto para produção.
 
-Renomear para `CnpjDataSeeder.java` ou modificar [DataSeeder.java](file:///c:/Projetos/IA369/QR369-GCP/prospecting-service/src/main/java/br/com/ia369/prospecting_service/config/DataSeeder.java) para semear CNPJs de exemplo:
+**Histórias de Usuário / Tarefas:**
 
-```java
-@Component
-public class CnpjDataSeeder implements CommandLineRunner {
-    public void run(String... args) {
-        repository.saveAll(List.of(
-            new Cnpj("60701190000104", "BRADESCO S.A.", "BRADESCO", "ATIVA",
-                     LocalDate.of(1943, 3, 10), "11", "37350000", "contato@bradesco.com.br",
-                     "Cidade de Deus", "s/n", "", "Vila Yara", "Osasco", "SP", "06029-900"),
-            // outros CNPJs de exemplo...
-        ));
-        log.info("Seed concluido: {} CNPJs inseridos", 1);
-    }
-}
-```
+1.  **Como desenvolvedor, quero garantir que a lógica de prospecção funciona corretamente**, então quero criar testes de integração.
+    *   **Tarefa:** Escrever testes para o `CnpjController` que simulem os cenários de "cache hit" e "cache miss".
 
----
+2.  **Como desenvolvedor, quero que o código esteja limpo e legível**, então quero refatorar e remover código não utilizado.
+    *   **Tarefa:** Realizar uma revisão completa do código, removendo classes, métodos ou variáveis que se tornaram obsoletos após a unificação.
 
-### Configuração
+3.  **Como um novo desenvolvedor no projeto, quero entender como usar a API**, então quero que a documentação seja atualizada.
+    *   **Tarefa:** Atualizar o arquivo `README.md` do projeto, documentando os novos endpoints (especialmente o de processamento em lote), as variáveis de ambiente necessárias e a arquitetura geral do serviço.
 
-#### [MODIFY] [application.yml](file:///c:/Projetos/IA369/QR369-GCP/prospecting-service/src/main/resources/application.yml)
-
-Manter H2, apenas nomear o banco mais semanticamente e desabilitar console fora do perfil `dev`:
-
-```yaml
-server:
-  port: ${PS_SERVER_PORT:8081}
-
-spring:
-  application:
-    name: prospecting-service       # nome mais descritivo
-  datasource:
-    url: jdbc:h2:mem:cnpjdb         # banco renomeado
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
-  h2:
-    console:
-      enabled: false                # desabilitado por padrão (segurança)
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: false
-```
-
-> [!NOTE]
-> O [pom.xml](file:///c:/Projetos/IA369/QR369-GCP/pom.xml) **não precisa de alterações** — as dependências `spring-boot-starter-data-jpa` e `h2` já cobrem tudo o que precisamos.
-
----
-
-## Verification Plan
-
-### Teste Automático via Maven
-
-Como não há testes automatizados no projeto, criaremos um teste de integração básico:
-
-#### [NEW] `src/test/java/.../CnpjControllerTest.java`
-
-```java
-@SpringBootTest(webEnvironment = RANDOM_PORT)
-class CnpjControllerTest {
-
-    @Test
-    void deveRetornar200QuandoCnpjExiste() { ... }
-
-    @Test
-    void deveRetornar404QuandoCnpjNaoExiste() { ... }
-}
-```
-
-**Comando para rodar:**
-```bash
-cd c:\Projetos\IA369\QR369-GCP\prospecting-service
-.\mvnw test
-```
-
----
-
-### Verificação Manual
-
-1. **Subir o serviço:**
-   ```bash
-   cd c:\Projetos\IA369\QR369-GCP\prospecting-service
-   .\mvnw spring-boot:run
-   ```
-
-2. **CNPJ existente (deve retornar 200):**
-   ```
-   GET http://localhost:8081/cnpj/60701190000104
-   ```
-   Resposta esperada: JSON com `razaoSocial`, `cidade`, etc.
-
-3. **CNPJ inexistente (deve retornar 404):**
-   ```
-   GET http://localhost:8081/cnpj/00000000000000
-   ```
-   Resposta esperada: `404 Not Found` — sem body.
-
-4. **Verificar integração com `virtual-assistant`** (se ambos estiverem rodando):
-   - Enviar ao assistente a mensagem: *"Consulte o CNPJ 60701190000104"*
-   - Ele deve invocar `CNPJTools.consultarCNPJ()` e retornar os dados da empresa.
-
----
-
-## Ordem de Execução Sugerida
-
-```
-1. Deletar: Ferias.java, FeriasRepository.java, FeriasController.java, FeriasResponse.java, DataSeeder.java
-2. Criar:  entity/Cnpj.java
-3. Criar:  repository/CnpjRepository.java
-4. Criar:  service/CnpjService.java
-5. Criar:  controller/CnpjController.java
-6. Modificar: DataSeeder → CnpjDataSeeder.java
-7. Modificar: application.yml (nome do banco, console off)
-8. Criar:  CnpjControllerTest.java
-9. Rodar:  mvnw test
-10. Testar: GET /cnpj/{cnpj} manualmente
-```
+**Critérios de Aceitação:**
+*   A suíte de testes passa com sucesso.
+*   O código-fonte não contém artefatos ou lógicas dos projetos antigos que não estão mais em uso.
+*   A documentação do projeto reflete com precisão o estado atual da aplicação e suas funcionalidades.

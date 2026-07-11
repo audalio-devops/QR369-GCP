@@ -35,6 +35,12 @@ services:
       - "${PS_SERVER_PORT:-8081}:${PS_SERVER_PORT:-8081}"
     environment:
       PS_SERVER_PORT: ${PS_SERVER_PORT:-8081}
+      SPRING_DATASOURCE_URL: ${VA_DB_URL}
+      SPRING_DATASOURCE_USERNAME: ${VA_DB_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${VA_DB_PASSWORD}
+    depends_on:
+      db:
+        condition: service_healthy
     restart: unless-stopped
 
   # ── Infraestrutura ──────────────────────────────────────────────────────────
