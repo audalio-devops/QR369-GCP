@@ -1,3 +1,6 @@
+server:
+  port: ${VA_SERVER_PORT}
+
 spring:
   datasource:
     url: ${VA_DB_URL}

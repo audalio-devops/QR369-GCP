@@ -1,8 +1,8 @@
 package br.com.ia369.prospecting_service.service;
 
 import br.com.ia369.prospecting_service.dto.CNPJResponse;
-import br.com.ia369.prospecting_service.entity.Cnpj;
-import br.com.ia369.prospecting_service.repository.CnpjRepository;
+import br.com.ia369.prospecting_service.entity.Empresa;
+import br.com.ia369.prospecting_service.repository.EmpresaRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -10,32 +10,32 @@ import java.util.Optional;
 @Service
 public class CnpjService {
 
-    private final CnpjRepository cnpjRepository;
+    private final EmpresaRepository empresaRepository;
 
-    public CnpjService(CnpjRepository cnpjRepository) {
-        this.cnpjRepository = cnpjRepository;
+    public CnpjService(EmpresaRepository empresaRepository) {
+        this.empresaRepository = empresaRepository;
     }
 
     public Optional<CNPJResponse> buscarPorCnpj(String cnpj) {
-        return cnpjRepository.findById(cnpj).map(this::toResponse);
+        return empresaRepository.findById(cnpj).map(this::toResponse);
     }
 
-    private CNPJResponse toResponse(Cnpj c) {
+    private CNPJResponse toResponse(Empresa e) {
         return new CNPJResponse(
-                c.getCnpj(),
-                c.getRazaoSocial(),
-                c.getNomeFantasia(),
-                c.getSituacaoCadastral(),
-                c.getDataAbertura(),
-                c.getDdd(),
-                c.getTelefone(),
-                c.getEmail(),
-                c.getLogradouro(),
-                c.getNumero(),
-                c.getComplemento(),
-                c.getBairro(),
-                c.getCidade(),
-                c.getUf(),
-                c.getCep());
+                e.getCnpj(),
+                e.getRazaoSocial(),
+                e.getNomeFantasia(),
+                e.getSituacaoCadastral(),
+                e.getDataAbertura(),
+                e.getDdd(),
+                e.getTelefone(),
+                e.getEmail(),
+                e.getLogradouro(),
+                e.getNumero(),
+                e.getComplemento(),
+                e.getBairro(),
+                e.getCidade(),
+                e.getUf(),
+                e.getCep());
     }
 }
