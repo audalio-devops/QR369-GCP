@@ -38,6 +38,7 @@ services:
       SPRING_DATASOURCE_URL: ${VA_DB_URL}
       SPRING_DATASOURCE_USERNAME: ${VA_DB_USERNAME}
       SPRING_DATASOURCE_PASSWORD: ${VA_DB_PASSWORD}
+      BRASILAPI_BASE_URL: ${BRASILAPI_BASE_URL:-https://brasilapi.com.br}
     depends_on:
       db:
         condition: service_healthy

@@ -32,9 +32,9 @@ class CnpjControllerTest {
                 LocalDate.of(1943, 3, 10), "11", "37350000", "contato@bradesco.com.br",
                 "Cidade de Deus", "s/n", "Prédio Prata", "Vila Yara", "Osasco", "SP", "06029-900");
 
-        when(cnpjService.buscarPorCnpj("60701190000104")).thenReturn(Optional.of(mockResponse));
+        when(cnpjService.findByCnpj("60701190000104")).thenReturn(Optional.of(mockResponse));
 
-        ResponseEntity<CNPJResponse> response = cnpjController.buscarPorCnpj("60701190000104");
+        ResponseEntity<CNPJResponse> response = cnpjController.findByCnpj("60701190000104");
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isNotNull();
@@ -44,9 +44,9 @@ class CnpjControllerTest {
 
     @Test
     void deveRetornar404ParaCnpjInexistente() {
-        when(cnpjService.buscarPorCnpj("99999999999999")).thenReturn(Optional.empty());
+        when(cnpjService.findByCnpj("99999999999999")).thenReturn(Optional.empty());
 
-        ResponseEntity<CNPJResponse> response = cnpjController.buscarPorCnpj("99999999999999");
+        ResponseEntity<CNPJResponse> response = cnpjController.findByCnpj("99999999999999");
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     }

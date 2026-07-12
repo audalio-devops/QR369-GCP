@@ -136,3 +136,8 @@ Variáveis de ambiente (onde ANTHROPIC_API_KEY é convertido automaticamente).
 Argumentos de linha de comando.
 Arquivos application.yml ou application.properties.
 Com o log que adicionamos, você terá certeza absoluta se o valor está chegando na aplicação antes de tentar enviar mensagens para a IA.
+
+Para testar apenas a classe EmpresaMapperTest, você deve executar o comando Maven especificando o diretório do módulo (prospecting-service) e o nome da classe de teste.
+
+Comando:
+mvn test -pl prospecting-service -Dtest=EmpresaMapperTest
