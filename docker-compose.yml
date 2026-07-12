@@ -7,8 +7,9 @@ services:
     build: ./virtual-assistant
     container_name: virtual-assistant-app
     ports:
-      - "8080:8080"
+      - "${VA_SERVER_PORT:-8080}:${VA_SERVER_PORT:-8080}"
     environment:
+      VA_SERVER_PORT: ${VA_SERVER_PORT:-8080}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
       SPRING_AI_OLLAMA_BASE_URL: ${SPRING_AI_OLLAMA_BASE_URL}
