@@ -1,6 +1,7 @@
 package br.com.ia369.prospecting_service.controller;
 
 import br.com.ia369.prospecting_service.dto.CNPJResponse;
+import br.com.ia369.prospecting_service.dto.ImportacaoResponse;
 import br.com.ia369.prospecting_service.service.CnpjService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -61,5 +62,34 @@ class CnpjControllerTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.ACCEPTED);
         verify(cnpjService).processarLoteDeCnpjs();
+    }
+
+    @Test
+    void deveRetornarImportacaoResponseComSucesso() throws Exception {
+        org.springframework.web.multipart.MultipartFile mockFile = Mockito
+                .mock(org.springframework.web.multipart.MultipartFile.class);
+        ImportacaoResponse expectedResponse = new ImportacaoResponse(10, 8, 2);
+
+        when(cnpjService.importarCnpjs(mockFile)).thenReturn(expectedResponse);
+
+        ResponseEntity<ImportacaoResponse> response = cnpjController.importarCnpj(mockFile);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().totalLidos()).isEqualTo(10);
+        assertThat(response.getBody().totalImportados()).isEqualTo(8);
+        assertThat(response.getBody().totalDuplicados()).isEqualTo(2);
+    }
+
+    @Test
+    void deveRetornarBadRequestQuandoOcorrerErroNaImportacao() throws Exception {
+        org.springframework.web.multipart.MultipartFile mockFile = Mockito
+                .mock(org.springframework.web.multipart.MultipartFile.class);
+
+        when(cnpjService.importarCnpjs(mockFile)).thenThrow(new java.io.IOException("Erro de teste"));
+
+        ResponseEntity<ImportacaoResponse> response = cnpjController.importarCnpj(mockFile);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
 }

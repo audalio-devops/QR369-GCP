@@ -1,0 +1,22 @@
+Para enviar o arquivo contendo os CNPJs para o endpoint /cnpj/importar-cnpj, o parâmetro no corpo da requisição precisa se chamar exatamente arquivo (pois é o valor correspondente definido na anotação @RequestParam("arquivo")).
+
+Abaixo, veja como fazer pelo curl e pelo Postman:
+
+1. Via curl
+Utilize o parâmetro -F (que indica envio em multipart/form-data) e utilize o caractere @ seguido do caminho completo ou relativo do seu arquivo local:
+
+bash
+curl -X POST -F "arquivo=@c:\caminho\para\cnpjs.txt" http://localhost:8081/cnpj/importar-cnpj
+Se você estiver no próprio diretório do arquivo, basta fazer:
+
+bash
+curl -X POST -F "arquivo=@cnpjs.txt" http://localhost:8081/cnpj/importar-cnpj
+
+2. Via Postman
+Crie uma requisição com o método POST e aponte para http://localhost:8081/cnpj/importar-cnpj.
+Vá até a aba Body logo abaixo da barra da URL.
+Marque a opção form-data.
+Configure a tabela de chaves e valores:
+Key: Escreva arquivo. Ao passar o cursor no canto direito desta célula, note que surgirá um menu suspenso (dropdown) onde você deve alterar o tipo de Text para File.
+Value: Agora que você alterou o tipo para File, a célula exibirá um botão Select Files. Clique nele e selecione o arquivo local .txt ou .csv do computador.
+Clique em Send para enviar.

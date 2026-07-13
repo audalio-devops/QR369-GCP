@@ -2,6 +2,7 @@ package br.com.ia369.prospecting_service.service;
 
 import br.com.ia369.prospecting_service.client.BrasilApiClient;
 import br.com.ia369.prospecting_service.dto.CNPJResponse;
+import br.com.ia369.prospecting_service.dto.ImportacaoResponse;
 import br.com.ia369.prospecting_service.entity.BuscaCnpj;
 import br.com.ia369.prospecting_service.entity.Empresa;
 import br.com.ia369.prospecting_service.mapper.EmpresaMapper;
@@ -11,7 +12,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
 
@@ -91,5 +97,38 @@ public class CnpjService {
                 e.getCidade(),
                 e.getUf(),
                 e.getCep());
+    }
+
+    public ImportacaoResponse importarCnpjs(MultipartFile arquivo) throws IOException {
+        log.info("Iniciando importação de CNPJs a partir do arquivo: {}", arquivo.getOriginalFilename());
+        int totalLidos = 0;
+        int totalImportados = 0;
+        int totalDuplicados = 0;
+
+        try (BufferedReader reader = new BufferedReader(
+                new InputStreamReader(arquivo.getInputStream(), StandardCharsets.UTF_8))) {
+            String linha;
+            while ((linha = reader.readLine()) != null) {
+                String cnpjLimpo = linha.trim().replaceAll("[^a-zA-Z0-9]", "");
+                if (cnpjLimpo.isEmpty()) {
+                    continue;
+                }
+
+                totalLidos++;
+                if (buscaCnpjRepository.existsByCnpj(cnpjLimpo)) {
+                    log.debug("CNPJ {} já existe na tabela de buscas. Ignorando.", cnpjLimpo);
+                    totalDuplicados++;
+                } else {
+                    BuscaCnpj novoItem = new BuscaCnpj();
+                    novoItem.setCnpj(cnpjLimpo);
+                    buscaCnpjRepository.save(novoItem);
+                    totalImportados++;
+                }
+            }
+        }
+
+        log.info("Importação concluída. Lidos: {}, Importados: {}, Duplicados: {}",
+                totalLidos, totalImportados, totalDuplicados);
+        return new ImportacaoResponse(totalLidos, totalImportados, totalDuplicados);
     }
 }
