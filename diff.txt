@@ -1,0 +1,21 @@
+﻿ build.log                                          | Bin 0 -> 6974 bytes
+ build_utf8.log                                     |  52 +++++++++++++++++++
+ docker-compose.yml                                 |   3 +-
+ prospecting-service/pom.xml                        |  31 ++++++++++-
+ .../prospecting_service/client/ApiCnpjClient.java  |  30 -----------
+ .../client/dto/BrasilApiEmpresaDTO.java            |  22 --------
+ .../config/RestClientConfig.java                   |  20 --------
+ .../controller/CnpjController.java                 |  10 ++--
+ .../prospecting_service/entity/BuscaCnpj.java      |  17 ++++++
+ .../ia369/prospecting_service/entity/Empresa.java  |  57 +++++++++++++++++++++
+ .../prospecting_service/mapper/EmpresaMapper.java  |  35 -------------
+ .../repository/BuscaCnpjRepository.java            |   9 ++++
+ .../repository/EmpresaRepository.java              |   9 ++++
+ .../prospecting_service/service/CnpjService.java   |  44 ++++++++--------
+ .../prospecting_service/service/ICnpjService.java  |   0
+ .../src/main/resources/application.yml             |   4 --
+ .../controller/CnpjControllerTest.java             |  10 ++--
+ .../mapper/EmpresaMapperTest.java                  |   0
+ .../org.mockito.plugins.MockMaker                  |   0
+ .../src/main/resources/application.yml             |   3 ++
+ 20 files changed, 212 insertions(+), 144 deletions(-)

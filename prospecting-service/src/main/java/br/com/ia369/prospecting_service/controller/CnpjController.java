@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -24,15 +25,22 @@ public class CnpjController {
 
     @GetMapping("/{cnpj}")
     public ResponseEntity<CNPJResponse> buscarPorCnpj(@PathVariable String cnpj) {
-        log.info("Recebida requisição para consultar CNPJ: {}", cnpj);
+        log.info("Recebida requisicao para consultar CNPJ: {}", cnpj);
         return cnpjService.buscarPorCnpj(cnpj)
                 .map(response -> {
                     log.info("CNPJ {} encontrado: {}", cnpj, response.razaoSocial());
                     return ResponseEntity.ok(response);
                 })
                 .orElseGet(() -> {
-                    log.warn("CNPJ {} não encontrado", cnpj);
+                    log.warn("CNPJ {} nao encontrado", cnpj);
                     return ResponseEntity.notFound().build();
                 });
+    }
+
+    @PostMapping("/processar-lote")
+    public ResponseEntity<Void> processarLote() {
+        log.info("Recebida requisicao para iniciar processamento em lote de CNPJs.");
+        cnpjService.processarLoteDeCnpjs();
+        return ResponseEntity.accepted().build();
     }
 }

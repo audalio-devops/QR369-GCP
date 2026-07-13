@@ -1,0 +1,15 @@
+﻿commit c90f558daf91a80f92a8aac9f72fdb7c87a0c2c3
+Author: audalio-devops <audalio.devops@gmail.com>
+Date:   Sun Jul 12 17:38:28 2026 -0300
+
+    Sprint 3
+
+M	docker-compose.yml
+A	prospecting-service/src/main/java/br/com/ia369/prospecting_service/client/ApiCnpjClient.java
+A	prospecting-service/src/main/java/br/com/ia369/prospecting_service/client/dto/BrasilApiEmpresaDTO.java
+A	prospecting-service/src/main/java/br/com/ia369/prospecting_service/config/RestClientConfig.java
+M	prospecting-service/src/main/java/br/com/ia369/prospecting_service/controller/CnpjController.java
+A	prospecting-service/src/main/java/br/com/ia369/prospecting_service/mapper/EmpresaMapper.java
+M	prospecting-service/src/main/resources/application.yml
+M	prospecting-service/src/test/java/br/com/ia369/prospecting_service/controller/CnpjControllerTest.java
+M	virtual-assistant/docs/Infos.md

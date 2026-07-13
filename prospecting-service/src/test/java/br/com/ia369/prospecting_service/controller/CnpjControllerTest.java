@@ -3,7 +3,6 @@ package br.com.ia369.prospecting_service.controller;
 import br.com.ia369.prospecting_service.dto.CNPJResponse;
 import br.com.ia369.prospecting_service.service.CnpjService;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.http.HttpStatus;
@@ -13,9 +12,10 @@ import java.time.LocalDate;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-@Disabled
 class CnpjControllerTest {
 
     private CnpjService cnpjService;
@@ -32,7 +32,7 @@ class CnpjControllerTest {
         CNPJResponse mockResponse = new CNPJResponse(
                 "60701190000104", "BANCO BRADESCO S.A.", "BRADESCO", "ATIVA",
                 LocalDate.of(1943, 3, 10), "11", "37350000", "contato@bradesco.com.br",
-                "Cidade de Deus", "s/n", "Prédio Prata", "Vila Yara", "Osasco", "SP", "06029-900");
+                "Cidade de Deus", "s/n", "Predio Prata", "Vila Yara", "Osasco", "SP", "06029-900");
 
         when(cnpjService.buscarPorCnpj("60701190000104")).thenReturn(Optional.of(mockResponse));
 
@@ -51,5 +51,15 @@ class CnpjControllerTest {
         ResponseEntity<CNPJResponse> response = cnpjController.buscarPorCnpj("99999999999999");
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    void deveRetornar202AoDispararProcessamentoEmLote() {
+        doNothing().when(cnpjService).processarLoteDeCnpjs();
+
+        ResponseEntity<Void> response = cnpjController.processarLote();
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.ACCEPTED);
+        verify(cnpjService).processarLoteDeCnpjs();
     }
 }
