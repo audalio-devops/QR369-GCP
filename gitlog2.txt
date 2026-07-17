@@ -1,0 +1,15 @@
+﻿f40b6bd Merge pull request #5 from audalio-devops/Sprint3
+ed673b0 Merge pull request #4 from audalio-devops/master
+4839953 Merge pull request #3 from audalio-devops/Sprint3
+505dc83 Merge pull request #2 from audalio-devops/master
+5c8d1b0 Sprint3
+c90f558 Sprint 3
+2f56958 Merge pull request #1 from audalio-devops/Spring2
+6fb7b26 Alteracoes para tentar executar a aplicacao de forma local, subindo containers em WSL2
+5be8326 Correcoes e Teste
+0a15a80 Sprint2 - Criacao das Entidades e Repositorios JPA
+f9bb243 Merge remote-tracking branch 'origin/master'
+a083e0a Documentos de implementacao e Spring1 (alteracao de h2 para postgres)
+005e787 Documentos de implementacao e Spring1 (alteracao de h2 para postgres)
+1c90544 feat: implement prospecting service with CNPJ entity, repository, and REST controller for data retrieval
+431ccb4 aplicando diretivas de auditoria de seguranca

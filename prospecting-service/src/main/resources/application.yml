@@ -16,3 +16,11 @@ spring:
     username: ${VA_DB_USERNAME}
     password: ${VA_DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
+
+prospecting:
+  schedule:
+    cron: "0 0 2 * * ?"  # Executa diariamente as 02:00
+
+brasilapi:
+  base-url: "https://brasilapi.com.br"
+

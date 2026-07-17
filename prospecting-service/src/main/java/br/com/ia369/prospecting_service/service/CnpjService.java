@@ -1,23 +1,83 @@
 package br.com.ia369.prospecting_service.service;
 
+import br.com.ia369.prospecting_service.client.BrasilApiClient;
 import br.com.ia369.prospecting_service.dto.CNPJResponse;
+import br.com.ia369.prospecting_service.dto.ImportacaoResponse;
+import br.com.ia369.prospecting_service.entity.BuscaCnpj;
 import br.com.ia369.prospecting_service.entity.Empresa;
+import br.com.ia369.prospecting_service.mapper.EmpresaMapper;
+import br.com.ia369.prospecting_service.repository.BuscaCnpjRepository;
 import br.com.ia369.prospecting_service.repository.EmpresaRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Optional;
 
 @Service
 public class CnpjService {
 
-    private final EmpresaRepository empresaRepository;
+    private static final Logger log = LoggerFactory.getLogger(CnpjService.class);
 
-    public CnpjService(EmpresaRepository empresaRepository) {
+    private final EmpresaRepository empresaRepository;
+    private final BuscaCnpjRepository buscaCnpjRepository;
+    private final BrasilApiClient brasilApiClient;
+
+    public CnpjService(EmpresaRepository empresaRepository,
+            BuscaCnpjRepository buscaCnpjRepository,
+            BrasilApiClient brasilApiClient) {
         this.empresaRepository = empresaRepository;
+        this.buscaCnpjRepository = buscaCnpjRepository;
+        this.brasilApiClient = brasilApiClient;
     }
 
     public Optional<CNPJResponse> buscarPorCnpj(String cnpj) {
-        return empresaRepository.findById(cnpj).map(this::toResponse);
+        log.info("Buscando CNPJ no cache local (banco): {}", cnpj);
+        Optional<Empresa> empresaOpt = empresaRepository.findById(cnpj);
+        if (empresaOpt.isPresent()) {
+            log.info("CNPJ {} encontrado no cache local.", cnpj);
+            return empresaOpt.map(this::toResponse);
+        }
+
+        log.info("CNPJ {} não encontrado localmente. Consultando BrasilAPI...", cnpj);
+        return brasilApiClient.buscarCnpj(cnpj)
+                .map(dto -> {
+                    Empresa empresa = EmpresaMapper.toEntity(dto);
+                    Empresa salva = empresaRepository.save(empresa);
+                    log.info("CNPJ {} obtido da BrasilAPI e salvo localmente.", cnpj);
+                    return toResponse(salva);
+                });
+    }
+
+    @Async
+    public void processarLoteDeCnpjs() {
+        log.info("Iniciando processamento em lote de CNPJs...");
+        List<BuscaCnpj> fila = buscaCnpjRepository.findAll();
+        log.info("Encontrados {} CNPJs na fila para processar.", fila.size());
+
+        for (BuscaCnpj item : fila) {
+            try {
+                Optional<CNPJResponse> resultado = buscarPorCnpj(item.getCnpj());
+                if (resultado.isPresent()) {
+                    log.info("CNPJ {} processado com sucesso: {}",
+                            item.getCnpj(), resultado.get().razaoSocial());
+                } else {
+                    log.warn("CNPJ {} nao encontrado na base de dados nem na BrasilAPI.", item.getCnpj());
+                }
+            } catch (Exception e) {
+                log.error("Falha ao processar o CNPJ {} do lote: {}",
+                        item.getCnpj(), e.getMessage(), e);
+            }
+        }
+
+        log.info("Processamento em lote finalizado. {} CNPJs processados.", fila.size());
     }
 
     private CNPJResponse toResponse(Empresa e) {
@@ -37,5 +97,38 @@ public class CnpjService {
                 e.getCidade(),
                 e.getUf(),
                 e.getCep());
+    }
+
+    public ImportacaoResponse importarCnpjs(MultipartFile arquivo) throws IOException {
+        log.info("Iniciando importação de CNPJs a partir do arquivo: {}", arquivo.getOriginalFilename());
+        int totalLidos = 0;
+        int totalImportados = 0;
+        int totalDuplicados = 0;
+
+        try (BufferedReader reader = new BufferedReader(
+                new InputStreamReader(arquivo.getInputStream(), StandardCharsets.UTF_8))) {
+            String linha;
+            while ((linha = reader.readLine()) != null) {
+                String cnpjLimpo = linha.trim().replaceAll("[^a-zA-Z0-9]", "");
+                if (cnpjLimpo.isEmpty()) {
+                    continue;
+                }
+
+                totalLidos++;
+                if (buscaCnpjRepository.existsByCnpj(cnpjLimpo)) {
+                    log.debug("CNPJ {} já existe na tabela de buscas. Ignorando.", cnpjLimpo);
+                    totalDuplicados++;
+                } else {
+                    BuscaCnpj novoItem = new BuscaCnpj();
+                    novoItem.setCnpj(cnpjLimpo);
+                    buscaCnpjRepository.save(novoItem);
+                    totalImportados++;
+                }
+            }
+        }
+
+        log.info("Importação concluída. Lidos: {}, Importados: {}, Duplicados: {}",
+                totalLidos, totalImportados, totalDuplicados);
+        return new ImportacaoResponse(totalLidos, totalImportados, totalDuplicados);
     }
 }
