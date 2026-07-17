@@ -42,11 +42,24 @@
     </form>
 
     <script>
+        // Função auxiliar para gerar UUID v4 com fallback para contextos HTTP não seguros
+        function generateUUID() {
+            if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+                return crypto.randomUUID();
+            }
+            // Fallback usando gerador pseudoaleatório Math.random
+            return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c) {
+                const r = Math.random() * 16 | 0;
+                const v = c === "x" ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+
         // 1) conversationId persistente por navegador
         function getConversationId() {
             let id = localStorage.getItem("conversationId");
             if (!id) {
-                id = crypto.randomUUID();
+                id = generateUUID();
                 localStorage.setItem("conversationId", id);
             }
             return id;
@@ -54,7 +67,7 @@
 
         // inicia uma sessao nova: novo conversationId e tela limpa
         function startNewConversation() {
-            localStorage.setItem("conversationId", crypto.randomUUID());
+            localStorage.setItem("conversationId", generateUUID());
             chat.innerHTML = "";
             input.focus();
         }
