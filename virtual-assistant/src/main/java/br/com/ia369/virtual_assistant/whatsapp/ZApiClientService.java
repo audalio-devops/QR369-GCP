@@ -20,6 +20,7 @@ public class ZApiClientService {
         this.zApiProperties = zApiProperties;
         this.webClient = WebClient.builder()
                 .baseUrl(zApiProperties.apiUrl())
+                .defaultHeader("CLIENT-TOKEN", zApiProperties.clientToken())
                 .build();
     }
 

@@ -5,5 +5,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "app.zapi")
 public record ZApiProperties(
     String apiUrl,
-    String sendMessageEndpoint
+    String sendMessageEndpoint,
+    String clientToken
 ) {}
