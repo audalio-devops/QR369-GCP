@@ -30,7 +30,7 @@ app:
   zapi:
     api-url: "https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}"
     send-message-endpoint: "/send-text"
-    client-token: ${CLIENT_TOKEN}
+    client-token: ${ZAPI_CLIENT_TOKEN}
 
 # nivel DEBUG apenas para o advisor que loga prompt (IDA) e resposta (VOLTA)
 logging:
