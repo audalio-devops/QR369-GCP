@@ -22,6 +22,9 @@ spring:
 
 # bloco proprio do projeto (nao e do framework)
 app:
+  auth:
+    username: ${LOGIN_USR:admin}
+    password: ${LOGIN_PWD:admin123}
   rag:
     top-k: 5 # quantos chunks o QuestionAnswerAdvisor recupera
     similarity-threshold: 0.2 # piso de similaridade do retrieval
