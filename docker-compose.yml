@@ -18,6 +18,8 @@ services:
       VA_DB_PASSWORD: ${VA_DB_PASSWORD}
       VA_REDIS_HOST: ${VA_REDIS_HOST}
       VA_REDIS_PORT: ${VA_REDIS_PORT}
+      LOGIN_USR: ${LOGIN_USR}
+      LOGIN_PWD: ${LOGIN_PWD}
       APP_PROSPECTING_BASE_URL: http://prospecting-service:8081
     depends_on:
       db:
@@ -107,3 +109,4 @@ volumes:
   pgdata:
   redisdata:
   ollama:
+
