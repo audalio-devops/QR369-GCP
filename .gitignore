@@ -5,6 +5,7 @@
 # segredos / ambiente
 .env
 *.env.local
+prospecting-service/src/main/resources/credentials/*.json
 
 # IDE
 .idea/
