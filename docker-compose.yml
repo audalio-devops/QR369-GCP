@@ -2,6 +2,20 @@ services:
 
   # ── Aplicações ─────────────────────────────────────────────────────────────
 
+  frontend:
+    image: frontend-app:latest
+    build: ./frontend-app
+    container_name: qr369-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      VITE_VA_API_URL: http://virtual-assistant:8080
+      VITE_PS_API_URL: http://prospecting-service:8081
+    depends_on:
+      - virtual-assistant
+      - prospecting-service
+    restart: unless-stopped
+
   virtual-assistant:
     image: virtual-assistant:latest
     build: ./virtual-assistant
