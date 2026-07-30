@@ -1,4 +1,4 @@
-Olá! Aqui é Gustavo da QR GOLD.
+Olá {Contato}! Aqui é Gustavo da QR GOLD.
 
 Antecipamos recebíveis com custo menor que banco tradicional.
 
