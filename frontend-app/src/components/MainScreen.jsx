@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import PanelChat from './panels/PanelChat';
 import PanelProspeccao from './panels/PanelProspeccao';
 import PanelCnpj from './panels/PanelCnpj';
+
 const PanelWip = ({ title, icon, isActive }) => (
     <div className={`panel ${isActive ? 'active' : ''}`}>
         <div className="panel-wip">
@@ -13,13 +14,41 @@ const PanelWip = ({ title, icon, isActive }) => (
     </div>
 );
 
-
 function MainScreen({ onLogout }) {
-    // Estado para controlar o painel ativo e o título
     const [activePanel, setActivePanel] = useState('panel-chat');
     const [activeTitle, setActiveTitle] = useState('Atendente Virtual');
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-    // Função para lidar com o clique na navegação
+    useEffect(() => {
+        const handleResize = () => {
+            if (window.innerWidth > 1023) {
+                setIsSidebarOpen(false);
+            }
+        };
+
+        const handleKeyDown = (event) => {
+            if (event.key === 'Escape') {
+                setIsSidebarOpen(false);
+            }
+        };
+
+        const handleScroll = () => {
+            if (isSidebarOpen) {
+                setIsSidebarOpen(false);
+            }
+        };
+
+        window.addEventListener('resize', handleResize);
+        window.addEventListener('keydown', handleKeyDown);
+        window.addEventListener('scroll', handleScroll, { passive: true });
+
+        return () => {
+            window.removeEventListener('resize', handleResize);
+            window.removeEventListener('keydown', handleKeyDown);
+            window.removeEventListener('scroll', handleScroll);
+        };
+    }, [isSidebarOpen]);
+
     const handleNavClick = (e) => {
         const navItem = e.currentTarget;
         const panelId = navItem.getAttribute('data-panel');
@@ -27,17 +56,30 @@ function MainScreen({ onLogout }) {
 
         setActivePanel(panelId);
         setActiveTitle(title);
+        setIsSidebarOpen(false);
     };
 
-    // Helper para gerar a classe do item de navegação
+    const handleToggleMenu = () => {
+        setIsSidebarOpen((prev) => !prev);
+    };
+
+    const handleCloseMenu = () => {
+        setIsSidebarOpen(false);
+    };
+
     const getNavItemClass = (panelId) => {
         return `nav-item ${activePanel === panelId ? 'active' : ''}`;
     };
 
     return (
         <div id="main-screen">
-            {/* SIDEBAR */}
-            <aside id="sidebar">
+            <div
+                className={`mobile-overlay ${isSidebarOpen ? 'visible' : ''}`}
+                onClick={handleCloseMenu}
+                role="presentation"
+            />
+
+            <aside id="sidebar" className={isSidebarOpen ? 'open' : ''}>
                 <div className="sidebar-header">
                     <div className="sidebar-brand">QR<span>369</span> Tools</div>
                     <div className="sidebar-tagline">Sistema de Gestão</div>
@@ -67,13 +109,23 @@ function MainScreen({ onLogout }) {
                 </div>
             </aside>
 
-            {/* CONTEÚDO PRINCIPAL */}
             <main id="content-area">
                 <div className="content-header">
-                    <h2 id="content-title">{activeTitle}</h2>
+                    <button
+                        className="mobile-menu-toggle"
+                        type="button"
+                        aria-label="Abrir menu"
+                        aria-expanded={isSidebarOpen}
+                        onClick={handleToggleMenu}
+                    >
+                        ☰
+                    </button>
+                    <div className="content-header-text">
+                        <div className="mobile-app-title">QR<span>369</span>Tools</div>
+                        <h2 id="content-title">{activeTitle}</h2>
+                    </div>
                 </div>
 
-                {/* Os painéis são renderizados condicionalmente com base no estado 'activePanel' */}
                 <PanelChat isActive={activePanel === 'panel-chat'} />
                 <PanelProspeccao isActive={activePanel === 'panel-prospeccao'} />
                 <PanelCnpj isActive={activePanel === 'panel-cnpj'} />
