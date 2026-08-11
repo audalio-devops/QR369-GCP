@@ -2,6 +2,20 @@ services:
 
   # ── Aplicações ─────────────────────────────────────────────────────────────
 
+  frontend:
+    image: frontend-app:latest
+    build: ./frontend-app
+    container_name: qr369-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      VITE_VA_API_URL: http://virtual-assistant:8080
+      VITE_PS_API_URL: http://prospecting-service:8081
+    depends_on:
+      - virtual-assistant
+      - prospecting-service
+    restart: unless-stopped
+
   virtual-assistant:
     image: virtual-assistant:latest
     build: ./virtual-assistant
@@ -18,6 +32,8 @@ services:
       VA_DB_PASSWORD: ${VA_DB_PASSWORD}
       VA_REDIS_HOST: ${VA_REDIS_HOST}
       VA_REDIS_PORT: ${VA_REDIS_PORT}
+      LOGIN_USR: ${LOGIN_USR}
+      LOGIN_PWD: ${LOGIN_PWD}
       APP_PROSPECTING_BASE_URL: http://prospecting-service:8081
     depends_on:
       db:
@@ -107,3 +123,4 @@ volumes:
   pgdata:
   redisdata:
   ollama:
+
