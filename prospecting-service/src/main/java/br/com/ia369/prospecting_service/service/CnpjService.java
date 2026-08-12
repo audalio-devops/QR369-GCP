@@ -129,6 +129,7 @@ public class CnpjService {
 
         log.info("Importação concluída. Lidos: {}, Importados: {}, Duplicados: {}",
                 totalLidos, totalImportados, totalDuplicados);
-        return new ImportacaoResponse(totalLidos, totalImportados, totalDuplicados);
+        String mensagem = String.format("Lidos: %d, Importados: %d, Duplicados: %d", totalLidos, totalImportados, totalDuplicados);
+        return new ImportacaoResponse("Sucesso", totalImportados, mensagem);
     }
 }
