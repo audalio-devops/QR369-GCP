@@ -56,6 +56,9 @@ services:
       SPRING_DATASOURCE_USERNAME: ${VA_DB_USERNAME}
       SPRING_DATASOURCE_PASSWORD: ${VA_DB_PASSWORD}
       BRASILAPI_BASE_URL: ${BRASILAPI_BASE_URL:-https://brasilapi.com.br}
+      ZAPI_INSTANCE_ID: ${ZAPI_INSTANCE_ID}
+      ZAPI_TOKEN: ${ZAPI_TOKEN}
+      ZAPI_CLIENT_TOKEN: ${ZAPI_CLIENT_TOKEN}
     depends_on:
       db:
         condition: service_healthy
