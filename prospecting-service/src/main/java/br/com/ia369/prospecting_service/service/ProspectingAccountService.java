@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import java.time.DayOfWeek;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import java.util.Random;
@@ -38,6 +39,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class ProspectingAccountService {
 
     private static final Logger log = LoggerFactory.getLogger(ProspectingAccountService.class);
+    private static final ZoneId ZONE_SP = ZoneId.of("America/Sao_Paulo");
 
     private static final String STATUS_NENHUM_TELEFONE = "Nenhum telefone válido";
     private static final String STATUS_CONTATO_INICIAL = "Contato Inicial";
@@ -61,10 +63,10 @@ public class ProspectingAccountService {
     private String workingEnd;
 
     @Value("${prospecting.interval.min:5}")
-    private int intervalMin;
+    private int intervalMin = 5;
 
     @Value("${prospecting.interval.max:22}")
-    private int intervalMax;
+    private int intervalMax = 22;
 
     private final Random random = new Random();
 
@@ -94,7 +96,9 @@ public class ProspectingAccountService {
      * Sinaliza para a execução corrente que ela deve parar.
      */
     public void stop() {
-        log.info("Sinal de parada recebido. A prospecção será encerrada após o registro atual.");
+        String msg = "Sinal de parada recebido. A prospecção será encerrada após o registro atual.";
+        log.info(msg);
+        registrarAuditoria("Parado", msg, null);
         shouldStop.set(true);
     }
 
@@ -108,20 +112,34 @@ public class ProspectingAccountService {
             return;
         }
         shouldStop.set(false);
-        log.info("=== Prospecção de Contadores INICIADA ===");
+
+        String msgInicioEndpoint = "Prospecção de contadores iniciada via endpoint.";
+        String msgInicio = "=== Prospecção de Contadores INICIADA ===";
+        log.info(msgInicioEndpoint);
+        registrarAuditoria("Iniciado", msgInicioEndpoint, null);
+        log.info(msgInicio);
+        registrarAuditoria("Iniciado", msgInicio, null);
 
         try {
             List<ProspectingDataSource> leads = dataSourceRepository.findByStatusIsNull();
-            log.info("Leads pendentes encontrados: {}", leads.size());
+            String msgLeads = "Leads pendentes encontrados: " + leads.size();
+            log.info(msgLeads);
+            registrarAuditoria("Iniciado", msgLeads, null);
 
             for (ProspectingDataSource lead : leads) {
                 if (shouldStop.get()) {
-                    log.info("Parada solicitada. Encerrando loop.");
+                    String msgParada = "Parada solicitada. Encerrando loop.";
+                    log.info(msgParada);
+                    registrarAuditoria("Parado", msgParada, null);
                     break;
                 }
 
-                if (!dentroDoHorario()) {
-                    log.info("Fora do horário de funcionamento. Encerrando execução.");
+                boolean ehTesteControlado = isTesteControlado(lead);
+
+                if (!ehTesteControlado && !dentroDoHorario()) {
+                    String msgForaHorario = "Fora do horário de funcionamento. Encerrando execução.";
+                    log.info(msgForaHorario);
+                    registrarAuditoria("Erro", msgForaHorario, null);
                     break;
                 }
 
@@ -134,7 +152,51 @@ public class ProspectingAccountService {
         } finally {
             isRunning.set(false);
             shouldStop.set(false);
-            log.info("=== Prospecção de Contadores FINALIZADA ===");
+            String msgFim = "=== Prospecção de Contadores FINALIZADA ===";
+            log.info(msgFim);
+            registrarAuditoria("Finalizado", msgFim, null);
+        }
+    }
+
+    /**
+     * Registra auditoria para o evento de monitoramento (GET
+     * /prospecting-account/status).
+     */
+    public void registrarAuditMonitoramento(boolean isRunning) {
+        String status = isRunning ? "Funcionando" : "Parado";
+        String logMsg = isRunning ? "=== Monitoramento EXECUTADO - EM EXECUÇÃO ==="
+                : "=== Monitoramento EXECUTADO - PARADO ===";
+        registrarAuditoria(status, logMsg, null);
+    }
+
+    /**
+     * Retorna os 10 logs de auditoria mais recentes.
+     */
+    public List<ProspectingAudit> getTop10AuditLogs() {
+        return auditRepository.findTop10ByOrderByDataEventoDesc();
+    }
+
+    /**
+     * Verifica se o lead pertence ao teste controlado (razao_social iniciando em
+     * TesteControlado).
+     */
+    private boolean isTesteControlado(ProspectingDataSource lead) {
+        return lead != null && lead.getRazaoSocial() != null && lead.getRazaoSocial().startsWith("TesteControlado");
+    }
+
+    /**
+     * Método utilitário para gravação de auditoria genérica.
+     */
+    private void registrarAuditoria(String status, String logMessage, String cnpj) {
+        try {
+            ProspectingAudit audit = new ProspectingAudit();
+            audit.setStatus(status);
+            audit.setLog(logMessage);
+            audit.setCnpj(cnpj);
+            audit.setDataEvento(LocalDateTime.now(ZONE_SP));
+            auditRepository.save(audit);
+        } catch (Exception ex) {
+            log.error("Falha ao registrar auditoria (status={}): {}", status, ex.getMessage(), ex);
         }
     }
 
@@ -143,7 +205,9 @@ public class ProspectingAccountService {
     // -------------------------------------------------------------------------
 
     private void processarLead(ProspectingDataSource lead) {
-        log.info("Processando lead: CNPJ={}", lead.getCnpj());
+        String msgProcessando = "Processando lead: CNPJ=" + lead.getCnpj();
+        log.info(msgProcessando);
+        registrarAuditoria("Funcionando", msgProcessando, lead.getCnpj());
 
         Optional<String> telefoneValidoOpt = phoneValidationService.validarTelefone(
                 lead.getTelefone1(), lead.getTelefone2());
@@ -152,7 +216,9 @@ public class ProspectingAccountService {
             // Nenhum telefone válido
             lead.setStatus(STATUS_NENHUM_TELEFONE);
             dataSourceRepository.save(lead);
-            log.info("CNPJ {}: nenhum telefone válido.", lead.getCnpj());
+            String msgSemTel = "CNPJ " + lead.getCnpj() + ": nenhum telefone válido.";
+            log.info(msgSemTel);
+            registrarAuditoria("Erro", msgSemTel, lead.getCnpj());
             return;
         }
 
@@ -177,23 +243,27 @@ public class ProspectingAccountService {
     private void enviarMensagem(String cnpj, String telefoneValido, ProspectingProcessed processed) {
         ProspectingAudit audit = new ProspectingAudit();
         audit.setCnpj(cnpj);
+        audit.setDataEvento(LocalDateTime.now(ZONE_SP));
 
         try {
             String mensagem = messageService.sortearMensagem();
             zApiClient.sendTextMessage(telefoneValido, mensagem);
 
             // Sucesso: atualizar registro processado
-            processed.setDataContato(LocalDateTime.now());
+            processed.setDataContato(LocalDateTime.now(ZONE_SP));
             processed.setStatus(STATUS_CONTATO_INICIAL);
             processedRepository.save(processed);
 
+            String msgSucesso = "CNPJ " + cnpj + ": mensagem enviada com sucesso para " + telefoneValido + ".";
             audit.setStatus(AUDIT_OK);
-            log.info("CNPJ {}: mensagem enviada com sucesso para {}.", cnpj, telefoneValido);
+            audit.setLog(msgSucesso);
+            log.info(msgSucesso);
 
         } catch (Exception ex) {
+            String msgErro = "CNPJ " + cnpj + ": falha ao enviar mensagem. Erro: " + ex.getMessage();
             audit.setStatus(AUDIT_ERROR);
-            audit.setLog(ex.getMessage());
-            log.error("CNPJ {}: falha ao enviar mensagem. Erro: {}", cnpj, ex.getMessage(), ex);
+            audit.setLog(msgErro);
+            log.error(msgErro, ex);
         } finally {
             auditRepository.save(audit);
         }
@@ -204,7 +274,7 @@ public class ProspectingAccountService {
     // -------------------------------------------------------------------------
 
     private boolean dentroDoHorario() {
-        LocalDateTime agora = LocalDateTime.now();
+        LocalDateTime agora = LocalDateTime.now(ZONE_SP);
         DayOfWeek dia = agora.getDayOfWeek();
 
         // Apenas segunda a sexta
@@ -220,10 +290,17 @@ public class ProspectingAccountService {
     }
 
     private void aguardarIntervalo() {
-        int minutos = intervalMin + random.nextInt(intervalMax - intervalMin + 1);
-        log.info("Aguardando {} minuto(s) antes do próximo registro...", minutos);
+        int baseMin = (intervalMin > 0) ? intervalMin : 5;
+        int t = baseMin + (random.nextInt(15) + 1); // Sortear T = 5 + Random(1..15) minutos
+        String msgEspera = "Aguardando " + t + " minuto(s) antes do próximo registro...";
+        log.info(msgEspera);
+        registrarAuditoria("Funcionando", msgEspera, null);
+        executarEspera((long) t * 60 * 1000);
+    }
+
+    protected void executarEspera(long millis) {
         try {
-            Thread.sleep((long) minutos * 60 * 1000);
+            Thread.sleep(millis);
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
             log.warn("Espera interrompida: {}", ex.getMessage());

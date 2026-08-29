@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import PanelChat from './panels/PanelChat';
 import PanelProspeccao from './panels/PanelProspeccao';
+import PanelProspeccaoContadores from './panels/PanelProspeccaoContadores';
 import PanelCnpj from './panels/PanelCnpj';
 
 const PanelWip = ({ title, icon, isActive }) => (
@@ -67,9 +68,13 @@ function MainScreen({ onLogout }) {
         setIsSidebarOpen(false);
     };
 
-    const getNavItemClass = (panelId) => {
-        return `nav-item ${activePanel === panelId ? 'active' : ''}`;
+    const getNavItemClass = (panelId, isSubitem = false) => {
+        const baseClass = isSubitem ? 'nav-subitem' : 'nav-item';
+        return `${baseClass} ${activePanel === panelId ? 'active' : ''}`;
     };
+
+    const isProspeccaoParentActive =
+        activePanel === 'panel-prospeccao-contadores' || activePanel === 'panel-prospeccao-contatos';
 
     return (
         <div id="main-screen">
@@ -86,19 +91,77 @@ function MainScreen({ onLogout }) {
                 </div>
                 <nav className="sidebar-nav">
                     <div className="nav-label">Módulos</div>
-                    <div className={getNavItemClass('panel-chat')} id="nav-chat" data-panel="panel-chat" data-title="Atendente Virtual" onClick={handleNavClick}>
+
+                    <div
+                        className={getNavItemClass('panel-chat')}
+                        id="nav-chat"
+                        data-panel="panel-chat"
+                        data-title="Atendente Virtual"
+                        onClick={handleNavClick}
+                    >
                         <span className="nav-icon">💬</span> Atendente Virtual
                     </div>
-                    <div className={getNavItemClass('panel-prospeccao')} id="nav-prospeccao" data-panel="panel-prospeccao" data-title="Prospecção" onClick={handleNavClick}>
-                        <span className="nav-icon">🎯</span> Prospecção
+
+                    {/* Grupo de Prospecção com Submenus */}
+                    <div className="nav-group">
+                        <div
+                            className={`nav-item nav-parent ${isProspeccaoParentActive ? 'parent-active' : ''}`}
+                            id="nav-prospeccao"
+                            data-panel="panel-prospeccao-contadores"
+                            data-title="Prospecção de Contadores"
+                            onClick={handleNavClick}
+                        >
+                            <span className="nav-icon">🎯</span> Prospecção
+                        </div>
+                        <div className="nav-subitems">
+                            <div
+                                className={getNavItemClass('panel-prospeccao-contadores', true)}
+                                id="nav-prospeccao-contadores"
+                                data-panel="panel-prospeccao-contadores"
+                                data-title="Prospecção de Contadores"
+                                onClick={handleNavClick}
+                            >
+                                <span className="nav-subicon">└</span> Contadores
+                            </div>
+                            <div
+                                className={getNavItemClass('panel-prospeccao-contatos', true)}
+                                id="nav-prospeccao-contatos"
+                                data-panel="panel-prospeccao-contatos"
+                                data-title="Prospecção - Contatos em Geral"
+                                onClick={handleNavClick}
+                            >
+                                <span className="nav-subicon">└</span> Contatos em Geral
+                            </div>
+                        </div>
                     </div>
-                    <div className={getNavItemClass('panel-cnpj')} id="nav-cnpj" data-panel="panel-cnpj" data-title="Consultar CNPJ" onClick={handleNavClick}>
+
+                    <div
+                        className={getNavItemClass('panel-cnpj')}
+                        id="nav-cnpj"
+                        data-panel="panel-cnpj"
+                        data-title="Consultar CNPJ"
+                        onClick={handleNavClick}
+                    >
                         <span className="nav-icon">🔍</span> Consultar CNPJ
                     </div>
-                    <div className={getNavItemClass('panel-importar')} id="nav-importar" data-panel="panel-importar" data-title="Importar Lista" onClick={handleNavClick}>
+
+                    <div
+                        className={getNavItemClass('panel-importar')}
+                        id="nav-importar"
+                        data-panel="panel-importar"
+                        data-title="Importar Lista"
+                        onClick={handleNavClick}
+                    >
                         <span className="nav-icon">📂</span> Importar Lista
                     </div>
-                    <div className={getNavItemClass('panel-lote')} id="nav-lote" data-panel="panel-lote" data-title="Pesquisar Lote" onClick={handleNavClick}>
+
+                    <div
+                        className={getNavItemClass('panel-lote')}
+                        id="nav-lote"
+                        data-panel="panel-lote"
+                        data-title="Pesquisar Lote"
+                        onClick={handleNavClick}
+                    >
                         <span className="nav-icon">📦</span> Pesquisar Lote
                     </div>
                 </nav>
@@ -127,7 +190,8 @@ function MainScreen({ onLogout }) {
                 </div>
 
                 <PanelChat isActive={activePanel === 'panel-chat'} />
-                <PanelProspeccao isActive={activePanel === 'panel-prospeccao'} />
+                <PanelProspeccaoContadores isActive={activePanel === 'panel-prospeccao-contadores'} />
+                <PanelProspeccao isActive={activePanel === 'panel-prospeccao-contatos'} />
                 <PanelCnpj isActive={activePanel === 'panel-cnpj'} />
                 <PanelWip title="Importar Lista" icon="📂" isActive={activePanel === 'panel-importar'} />
                 <PanelWip title="Pesquisar Lote" icon="📦" isActive={activePanel === 'panel-lote'} />

@@ -6,12 +6,17 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import br.com.ia369.prospecting_service.model.ProspectingAudit;
+import java.util.List;
+
 /**
  * Controller REST para o endpoint de prospecção de contadores.
  *
  * POST /prospecting-account → inicia o processamento (async, retorna 202)
  * DELETE /prospecting-account → sinaliza parada do processamento
  * GET /prospecting-account/status → retorna se está em execução
+ * GET /prospecting-account/audit → retorna os 10 logs de auditoria mais
+ * recentes
  */
 @RestController
 @RequestMapping("/prospecting-account")
@@ -64,6 +69,17 @@ public class ProspectingAccountController {
     @GetMapping("/status")
     public ResponseEntity<String> getStatus() {
         boolean running = prospectingAccountService.isRunning();
+        prospectingAccountService.registrarAuditMonitoramento(running);
         return ResponseEntity.ok("{\"running\": " + running + "}");
+    }
+
+    /**
+     * Retorna os 10 logs mais recentes da auditoria.
+     *
+     * @return 200 OK com a lista dos 10 últimos registros
+     */
+    @GetMapping("/audit")
+    public ResponseEntity<List<ProspectingAudit>> getRecentAuditLogs() {
+        return ResponseEntity.ok(prospectingAccountService.getTop10AuditLogs());
     }
 }

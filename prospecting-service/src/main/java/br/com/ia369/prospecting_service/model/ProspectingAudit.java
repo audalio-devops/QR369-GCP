@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 @Entity
 @Table(name = "prospecting_audit")
@@ -12,20 +13,27 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 public class ProspectingAudit {
 
+    private static final ZoneId ZONE_SP = ZoneId.of("America/Sao_Paulo");
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "data_envio", nullable = false)
+    @Column(name = "data_evento", nullable = false)
+    private LocalDateTime dataEvento;
+
+    @Column(name = "data_envio")
     private LocalDateTime dataEnvio;
 
     @Column(length = 14)
     private String cnpj;
 
     /**
-     * Valores possíveis: "Ok" ou "Error"
+     * Valores possíveis: "Iniciado", "Erro", "Finalizado", "Funcionando", "Parado",
+     * "Ok",
+     * "Error"
      */
-    @Column(length = 10, nullable = false)
+    @Column(length = 50, nullable = false)
     private String status;
 
     @Column(columnDefinition = "TEXT")
@@ -33,8 +41,11 @@ public class ProspectingAudit {
 
     @PrePersist
     protected void onCreate() {
+        if (this.dataEvento == null) {
+            this.dataEvento = LocalDateTime.now(ZONE_SP);
+        }
         if (this.dataEnvio == null) {
-            this.dataEnvio = LocalDateTime.now();
+            this.dataEnvio = this.dataEvento;
         }
     }
 }

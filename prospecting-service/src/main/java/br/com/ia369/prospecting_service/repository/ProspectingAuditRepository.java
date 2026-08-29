@@ -6,6 +6,8 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 
+import java.util.List;
+
 @Repository
 public interface ProspectingAuditRepository extends JpaRepository<ProspectingAudit, Long> {
 
@@ -13,5 +15,10 @@ public interface ProspectingAuditRepository extends JpaRepository<ProspectingAud
      * Conta registros de auditoria após o instante informado — usado pelo script de
      * monitoramento via API.
      */
-    long countByDataEnvioAfter(LocalDateTime after);
+    long countByDataEventoAfter(LocalDateTime after);
+
+    /**
+     * Retorna os 10 registros de auditoria mais recentes.
+     */
+    List<ProspectingAudit> findTop10ByOrderByDataEventoDesc();
 }

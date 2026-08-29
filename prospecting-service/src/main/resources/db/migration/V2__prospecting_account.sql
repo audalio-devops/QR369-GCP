@@ -23,13 +23,13 @@ CREATE TABLE IF NOT EXISTS prospecting_processed (
 -- 3. Nova tabela: auditoria de envios
 CREATE TABLE IF NOT EXISTS prospecting_audit (
     id          BIGSERIAL       PRIMARY KEY,
-    data_envio  TIMESTAMP       NOT NULL DEFAULT NOW(),
+    data_evento TIMESTAMP       NOT NULL DEFAULT NOW(),
     cnpj        VARCHAR(14),
-    status      VARCHAR(10)     NOT NULL, -- 'Ok' ou 'Error'
+    status      VARCHAR(50)     NOT NULL,
     log         TEXT
 );
 
 -- Índices para consultas de monitoramento
-CREATE INDEX IF NOT EXISTS idx_audit_data_envio ON prospecting_audit (data_envio DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_data_evento ON prospecting_audit (data_evento DESC);
 CREATE INDEX IF NOT EXISTS idx_processed_cnpj   ON prospecting_processed (cnpj);
 CREATE INDEX IF NOT EXISTS idx_datasource_status ON prospecting_data_source (status);
