@@ -35,6 +35,9 @@ services:
       LOGIN_USR: ${LOGIN_USR}
       LOGIN_PWD: ${LOGIN_PWD}
       APP_PROSPECTING_BASE_URL: http://prospecting-service:8081
+      ZAPI_INSTANCE_ID: ${ZAPI_INSTANCE_ID}
+      ZAPI_TOKEN: ${ZAPI_TOKEN}
+      ZAPI_CLIENT_TOKEN: ${ZAPI_CLIENT_TOKEN}
     depends_on:
       db:
         condition: service_healthy
