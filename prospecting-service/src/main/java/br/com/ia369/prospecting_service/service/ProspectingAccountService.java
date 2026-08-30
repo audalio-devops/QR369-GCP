@@ -126,7 +126,9 @@ public class ProspectingAccountService {
             log.info(msgLeads);
             registrarAuditoria("Iniciado", msgLeads, null);
 
-            for (ProspectingDataSource lead : leads) {
+            for (int i = 0; i < leads.size(); i++) {
+                ProspectingDataSource lead = leads.get(i);
+
                 if (shouldStop.get()) {
                     String msgParada = "Parada solicitada. Encerrando loop.";
                     log.info(msgParada);
@@ -153,7 +155,9 @@ public class ProspectingAccountService {
                     registrarAuditoria("Erro", msgErroLead, cnpjLead);
                 }
 
-                if (!shouldStop.get()) {
+                // Só aguarda o intervalo se ainda houver um próximo lead a processar.
+                boolean haProximoLead = (i + 1) < leads.size();
+                if (haProximoLead && !shouldStop.get()) {
                     aguardarIntervalo();
                 }
             }
