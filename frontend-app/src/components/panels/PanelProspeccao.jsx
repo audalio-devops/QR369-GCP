@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useToasts, ToastStack } from '../Toast';
 
 const PanelProspeccao = ({ isActive }) => {
     const [contacts, setContacts] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
+    const { toasts, pushToast, dismissToast } = useToasts();
 
     const loadProspectingData = async () => {
         setContacts([]);
@@ -50,14 +52,23 @@ const PanelProspeccao = ({ isActive }) => {
         const confirmed = window.confirm("Deseja mesmo iniciar a prospecção?");
         if (confirmed) {
             const now = new Date();
-            window.alert(`Prospecção Iniciada às ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`);
+            pushToast({
+                type: 'success',
+                title: 'Prospecção iniciada',
+                text: `Iniciada às ${now.toLocaleDateString('pt-BR')} ${now.toLocaleTimeString('pt-BR')}`,
+            });
         } else {
-            window.alert("Prospecção cancelada.");
+            pushToast({
+                type: 'info',
+                title: 'Prospecção cancelada',
+                text: 'Nenhuma ação foi executada.',
+            });
         }
     };
 
     return (
         <div className={`panel ${isActive ? 'active' : ''}`} id="panel-prospeccao">
+            <ToastStack toasts={toasts} onDismiss={dismissToast} />
             <div className="prospeccao-card">
                 <div className="prospeccao-header">
                     <h3>🎯 Lista de Contatos</h3>

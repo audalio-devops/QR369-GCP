@@ -143,7 +143,15 @@ public class ProspectingAccountService {
                     break;
                 }
 
-                processarLead(lead);
+                try {
+                    processarLead(lead);
+                } catch (Exception ex) {
+                    String cnpjLead = (lead != null) ? lead.getCnpj() : null;
+                    String msgErroLead = "Falha ao processar lead (CNPJ=" + cnpjLead + "): " + ex.getMessage()
+                            + ". Continuando para o próximo lead.";
+                    log.error(msgErroLead, ex);
+                    registrarAuditoria("Erro", msgErroLead, cnpjLead);
+                }
 
                 if (!shouldStop.get()) {
                     aguardarIntervalo();

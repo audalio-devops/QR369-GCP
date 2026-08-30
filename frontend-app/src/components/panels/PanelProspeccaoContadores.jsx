@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useToasts, ToastStack } from '../Toast';
 
 const PanelProspeccaoContadores = ({ isActive }) => {
     const [auditLogs, setAuditLogs] = useState([]);
@@ -8,7 +9,7 @@ const PanelProspeccaoContadores = ({ isActive }) => {
         isRunning: null,
         message: ''
     });
-    const [actionMessage, setActionMessage] = useState({ text: '', type: '' });
+    const { toasts, pushToast, dismissToast } = useToasts();
 
     const fetchAuditLogs = async () => {
         setIsLoadingLogs(true);
@@ -28,7 +29,6 @@ const PanelProspeccaoContadores = ({ isActive }) => {
     };
 
     const handleVerificarStatus = async () => {
-        setActionMessage({ text: '', type: '' });
         try {
             const response = await fetch('/prospecting-account/status');
             const now = new Date();
@@ -41,9 +41,10 @@ const PanelProspeccaoContadores = ({ isActive }) => {
                     isRunning: data.running,
                     message: data.running ? 'Prospecção em andamento.' : 'Prospecção parada.'
                 });
-                setActionMessage({
-                    text: `Verificação concluída às ${formattedTime}. Status: ${data.running ? 'EM EXECUÇÃO' : 'PARADO'}`,
-                    type: 'info'
+                pushToast({
+                    type: 'info',
+                    title: 'Status verificado',
+                    text: `Concluída às ${formattedTime}. Status: ${data.running ? 'EM EXECUÇÃO' : 'PARADO'}`
                 });
             } else {
                 throw new Error(`Status HTTP ${response.status}`);
@@ -53,9 +54,10 @@ const PanelProspeccaoContadores = ({ isActive }) => {
                 ...prev,
                 message: 'Erro ao obter status do serviço.'
             }));
-            setActionMessage({
-                text: `Falha ao verificar status: ${err.message}`,
-                type: 'error'
+            pushToast({
+                type: 'error',
+                title: 'Falha ao verificar status',
+                text: err.message
             });
         } finally {
             fetchAuditLogs();
@@ -65,20 +67,19 @@ const PanelProspeccaoContadores = ({ isActive }) => {
     const handleIniciarProspeccao = async () => {
         if (!window.confirm('Deseja iniciar a prospecção de contadores?')) return;
 
-        setActionMessage({ text: '', type: '' });
         try {
             const response = await fetch('/prospecting-account', { method: 'POST' });
             const messageText = await response.text();
 
             if (response.status === 202) {
-                setActionMessage({ text: `✅ ${messageText}`, type: 'success' });
+                pushToast({ type: 'success', title: 'Prospecção iniciada', text: messageText });
             } else if (response.status === 409) {
-                setActionMessage({ text: `⚠️ ${messageText}`, type: 'warning' });
+                pushToast({ type: 'warning', title: 'Prospecção já em andamento', text: messageText });
             } else {
-                setActionMessage({ text: `❌ Erro ${response.status}: ${messageText}`, type: 'error' });
+                pushToast({ type: 'error', title: `Erro ${response.status}`, text: messageText });
             }
         } catch (err) {
-            setActionMessage({ text: `❌ Falha ao conectar ao serviço: ${err.message}`, type: 'error' });
+            pushToast({ type: 'error', title: 'Falha ao conectar ao serviço', text: err.message });
         } finally {
             handleVerificarStatus();
         }
@@ -87,18 +88,17 @@ const PanelProspeccaoContadores = ({ isActive }) => {
     const handlePararProspeccao = async () => {
         if (!window.confirm('Deseja solicitar a parada da prospecção de contadores?')) return;
 
-        setActionMessage({ text: '', type: '' });
         try {
             const response = await fetch('/prospecting-account', { method: 'DELETE' });
             const messageText = await response.text();
 
             if (response.ok) {
-                setActionMessage({ text: `🛑 ${messageText}`, type: 'warning' });
+                pushToast({ type: 'warning', title: 'Parada solicitada', text: messageText });
             } else {
-                setActionMessage({ text: `❌ Erro ${response.status}: ${messageText}`, type: 'error' });
+                pushToast({ type: 'error', title: `Erro ${response.status}`, text: messageText });
             }
         } catch (err) {
-            setActionMessage({ text: `❌ Falha ao enviar sinal de parada: ${err.message}`, type: 'error' });
+            pushToast({ type: 'error', title: 'Falha ao enviar sinal de parada', text: err.message });
         } finally {
             handleVerificarStatus();
         }
@@ -132,6 +132,7 @@ const PanelProspeccaoContadores = ({ isActive }) => {
 
     return (
         <div className={`panel ${isActive ? 'active' : ''}`} id="panel-prospeccao-contadores">
+            <ToastStack toasts={toasts} onDismiss={dismissToast} />
             <div className="prospeccao-card">
                 <div className="prospeccao-header">
                     <div>
@@ -183,12 +184,6 @@ const PanelProspeccaoContadores = ({ isActive }) => {
                         </span>
                     </div>
                 </div>
-
-                {actionMessage.text && (
-                    <div className={`prospeccao-alert alert-${actionMessage.type}`}>
-                        {actionMessage.text}
-                    </div>
-                )}
 
                 {/* Tabela de Logs de Auditoria */}
                 <div className="prospeccao-audit-section">

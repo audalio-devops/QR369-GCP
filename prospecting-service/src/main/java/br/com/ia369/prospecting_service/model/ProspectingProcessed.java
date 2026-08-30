@@ -16,7 +16,7 @@ public class ProspectingProcessed {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(length = 14, nullable = false)
+    @Column(length = 14)
     private String cnpj;
 
     @Column(length = 255)
