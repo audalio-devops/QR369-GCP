@@ -20,3 +20,6 @@ Configure a tabela de chaves e valores:
 Key: Escreva arquivo. Ao passar o cursor no canto direito desta célula, note que surgirá um menu suspenso (dropdown) onde você deve alterar o tipo de Text para File.
 Value: Agora que você alterou o tipo para File, a célula exibirá um botão Select Files. Clique nele e selecione o arquivo local .txt ou .csv do computador.
 Clique em Send para enviar.
+
+Alimentar a base de dados
+curl.exe -X POST -F "file=@QRGold_instrucoes.pdf" http://localhost:8080/ingest
