@@ -38,4 +38,4 @@ app:
 # nivel DEBUG apenas para o advisor que loga prompt (IDA) e resposta (VOLTA)
 logging:
   level:
-    br.com.ia369.virtual_assistant.chat.PromptLoggingAdvisor: DEBUG
+    br.com.ia369.virtual_assistant.chat.PromptLoggingAdvisor: INFO
