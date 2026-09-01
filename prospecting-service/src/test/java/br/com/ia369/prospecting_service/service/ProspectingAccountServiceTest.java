@@ -15,7 +15,7 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -48,9 +48,11 @@ class ProspectingAccountServiceTest {
     private ArgumentCaptor<ProspectingAudit> auditCaptor;
 
     private ProspectingAccountService service;
+    private List<Long> temposDeEspera;
 
     @BeforeEach
     void setUp() {
+        temposDeEspera = new ArrayList<>();
         service = new ProspectingAccountService(
                 dataSourceRepository,
                 processedRepository,
@@ -60,6 +62,7 @@ class ProspectingAccountServiceTest {
                 zApiClient) {
             @Override
             protected void executarEspera(long millis) {
+                temposDeEspera.add(millis);
                 // Não dorme durante testes unitários, mas valida que o tempo é estritamente > 0
                 assertTrue(millis >= 6 * 60 * 1000L && millis <= 20 * 60 * 1000L,
                         "O tempo sorteado deve ser no mínimo 6 min (5 + Random(1..15)) e no máximo 20 min");
@@ -108,5 +111,29 @@ class ProspectingAccountServiceTest {
         assertTrue(savedAudits.stream().anyMatch(a -> "Iniciado".equals(a.getStatus())));
         assertTrue(savedAudits.stream().anyMatch(a -> "Finalizado".equals(a.getStatus())));
         verify(zApiClient).sendTextMessage(eq("5511999998888"), anyString());
+    }
+
+    @Test
+    @DisplayName("Nao deve sortear intervalo quando o lead nao possui telefone no WhatsApp")
+    void naoDeveAguardarAposLeadSemTelefoneValido() {
+        ProspectingDataSource leadSemWhatsapp = new ProspectingDataSource();
+        leadSemWhatsapp.setCnpj("11111111000111");
+        leadSemWhatsapp.setRazaoSocial("TesteControladoSemWhatsapp");
+        leadSemWhatsapp.setTelefone1("11999990000");
+
+        ProspectingDataSource proximoLead = new ProspectingDataSource();
+        proximoLead.setCnpj("22222222000122");
+        proximoLead.setRazaoSocial("TesteControladoComWhatsapp");
+        proximoLead.setTelefone1("11999991111");
+
+        when(dataSourceRepository.findByStatusIsNull()).thenReturn(List.of(leadSemWhatsapp, proximoLead));
+        when(phoneValidationService.validarTelefone("11999990000", null)).thenReturn(Optional.empty());
+        when(phoneValidationService.validarTelefone("11999991111", null)).thenReturn(Optional.of("5511999991111"));
+        when(messageService.sortearMensagem()).thenReturn("Ola Contador");
+
+        service.startProspecting();
+
+        assertTrue(temposDeEspera.isEmpty(), "Nao deve haver espera antes da leitura do proximo lead");
+        verify(zApiClient).sendTextMessage("5511999991111", "Ola Contador");
     }
 }

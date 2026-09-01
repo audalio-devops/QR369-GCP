@@ -146,7 +146,10 @@ public class ProspectingAccountService {
                 }
 
                 try {
-                    processarLead(lead);
+                    boolean mensagemEnviada = processarLead(lead);
+                    if (mensagemEnviada && (i + 1) < leads.size() && !shouldStop.get()) {
+                        aguardarIntervalo();
+                    }
                 } catch (Exception ex) {
                     String cnpjLead = (lead != null) ? lead.getCnpj() : null;
                     String msgErroLead = "Falha ao processar lead (CNPJ=" + cnpjLead + "): " + ex.getMessage()
@@ -155,11 +158,6 @@ public class ProspectingAccountService {
                     registrarAuditoria("Erro", msgErroLead, cnpjLead);
                 }
 
-                // Só aguarda o intervalo se ainda houver um próximo lead a processar.
-                boolean haProximoLead = (i + 1) < leads.size();
-                if (haProximoLead && !shouldStop.get()) {
-                    aguardarIntervalo();
-                }
             }
         } finally {
             isRunning.set(false);
@@ -216,7 +214,7 @@ public class ProspectingAccountService {
     // Processamento individual de um lead
     // -------------------------------------------------------------------------
 
-    private void processarLead(ProspectingDataSource lead) {
+    private boolean processarLead(ProspectingDataSource lead) {
         String msgProcessando = "Processando lead: CNPJ=" + lead.getCnpj();
         log.info(msgProcessando);
         registrarAuditoria("Funcionando", msgProcessando, lead.getCnpj());
@@ -231,7 +229,7 @@ public class ProspectingAccountService {
             String msgSemTel = "CNPJ " + lead.getCnpj() + ": nenhum telefone válido.";
             log.info(msgSemTel);
             registrarAuditoria("Erro", msgSemTel, lead.getCnpj());
-            return;
+            return false;
         }
 
         String telefoneValido = telefoneValidoOpt.get();
@@ -249,10 +247,10 @@ public class ProspectingAccountService {
         processedRepository.save(processed);
 
         // Enviar mensagem e registrar auditoria
-        enviarMensagem(lead.getCnpj(), telefoneValido, processed);
+        return enviarMensagem(lead.getCnpj(), telefoneValido, processed);
     }
 
-    private void enviarMensagem(String cnpj, String telefoneValido, ProspectingProcessed processed) {
+    private boolean enviarMensagem(String cnpj, String telefoneValido, ProspectingProcessed processed) {
         ProspectingAudit audit = new ProspectingAudit();
         audit.setCnpj(cnpj);
         audit.setDataEvento(LocalDateTime.now(ZONE_SP));
@@ -270,12 +268,14 @@ public class ProspectingAccountService {
             audit.setStatus(AUDIT_OK);
             audit.setLog(msgSucesso);
             log.info(msgSucesso);
+            return true;
 
         } catch (Exception ex) {
             String msgErro = "CNPJ " + cnpj + ": falha ao enviar mensagem. Erro: " + ex.getMessage();
             audit.setStatus(AUDIT_ERROR);
             audit.setLog(msgErro);
             log.error(msgErro, ex);
+            return false;
         } finally {
             auditRepository.save(audit);
         }
