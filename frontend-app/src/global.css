@@ -1358,6 +1358,52 @@ body.body-main {
     color: var(--color-bordeaux);
 }
 
+.confirmation-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 3000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.35);
+}
+
+.confirmation-dialog {
+    width: min(420px, 100%);
+}
+
+.confirmation-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 0.9rem;
+}
+
+.confirmation-actions button {
+    border-radius: var(--radius);
+    padding: 0.45rem 0.7rem;
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.confirmation-cancel {
+    color: var(--color-text-dark);
+    background: var(--color-white);
+    border: 1px solid var(--color-border);
+}
+
+.confirmation-confirm {
+    color: var(--color-white);
+    background: var(--color-bordeaux);
+    border: 1px solid var(--color-bordeaux);
+}
+
+.confirmation-actions button:hover {
+    filter: brightness(0.92);
+}
 @media (max-width: 640px) {
     .toast-stack {
         left: 1rem;

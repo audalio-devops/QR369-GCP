@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useToasts, ToastStack } from '../Toast';
+import { ConfirmationDialog, useConfirmation, useToasts, ToastStack } from '../Toast';
 
 const PanelProspeccaoContadores = ({ isActive }) => {
     const [auditLogs, setAuditLogs] = useState([]);
@@ -10,6 +10,7 @@ const PanelProspeccaoContadores = ({ isActive }) => {
         message: ''
     });
     const { toasts, pushToast, dismissToast } = useToasts();
+    const { confirmation, confirm, confirmAction, cancelConfirmation } = useConfirmation();
 
     const fetchAuditLogs = async () => {
         setIsLoadingLogs(true);
@@ -65,7 +66,12 @@ const PanelProspeccaoContadores = ({ isActive }) => {
     };
 
     const handleIniciarProspeccao = async () => {
-        if (!window.confirm('Deseja iniciar a prospecção de contadores?')) return;
+        const confirmed = await confirm({
+            type: 'info',
+            title: 'Iniciar prospecção',
+            text: 'Deseja iniciar a prospecção de contadores?'
+        });
+        if (!confirmed) return;
 
         try {
             const response = await fetch('/prospecting-account', { method: 'POST' });
@@ -86,7 +92,13 @@ const PanelProspeccaoContadores = ({ isActive }) => {
     };
 
     const handlePararProspeccao = async () => {
-        if (!window.confirm('Deseja solicitar a parada da prospecção de contadores?')) return;
+        const confirmed = await confirm({
+            type: 'warning',
+            title: 'Parar prospecção',
+            text: 'Deseja solicitar a parada da prospecção de contadores?',
+            confirmLabel: 'Solicitar parada'
+        });
+        if (!confirmed) return;
 
         try {
             const response = await fetch('/prospecting-account', { method: 'DELETE' });
@@ -133,6 +145,7 @@ const PanelProspeccaoContadores = ({ isActive }) => {
     return (
         <div className={`panel ${isActive ? 'active' : ''}`} id="panel-prospeccao-contadores">
             <ToastStack toasts={toasts} onDismiss={dismissToast} />
+            <ConfirmationDialog confirmation={confirmation} onConfirm={confirmAction} onCancel={cancelConfirmation} />
             <div className="prospeccao-card">
                 <div className="prospeccao-header">
                     <div>

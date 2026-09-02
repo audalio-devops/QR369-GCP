@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useToasts, ToastStack } from '../Toast';
+import { ConfirmationDialog, useConfirmation, useToasts, ToastStack } from '../Toast';
 
 const PanelProspeccao = ({ isActive }) => {
     const [contacts, setContacts] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const { toasts, pushToast, dismissToast } = useToasts();
+    const { confirmation, confirm, confirmAction, cancelConfirmation } = useConfirmation();
 
     const loadProspectingData = async () => {
         setContacts([]);
@@ -48,8 +49,12 @@ const PanelProspeccao = ({ isActive }) => {
         }
     }, [isActive]);
 
-    const handleIniciarProspeccao = () => {
-        const confirmed = window.confirm("Deseja mesmo iniciar a prospecção?");
+    const handleIniciarProspeccao = async () => {
+        const confirmed = await confirm({
+            type: 'info',
+            title: 'Iniciar prospecção',
+            text: 'Deseja mesmo iniciar a prospecção?'
+        });
         if (confirmed) {
             const now = new Date();
             pushToast({
@@ -69,6 +74,7 @@ const PanelProspeccao = ({ isActive }) => {
     return (
         <div className={`panel ${isActive ? 'active' : ''}`} id="panel-prospeccao">
             <ToastStack toasts={toasts} onDismiss={dismissToast} />
+            <ConfirmationDialog confirmation={confirmation} onConfirm={confirmAction} onCancel={cancelConfirmation} />
             <div className="prospeccao-card">
                 <div className="prospeccao-header">
                     <h3>🎯 Lista de Contatos</h3>

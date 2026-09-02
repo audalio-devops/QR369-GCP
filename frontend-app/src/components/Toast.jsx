@@ -59,6 +59,78 @@ const FALLBACK_TITLE = {
     info: 'Informação',
 };
 
+export function useConfirmation() {
+    const [confirmation, setConfirmation] = useState(null);
+    const resolver = useRef(null);
+
+    const confirm = useCallback((options) => new Promise((resolve) => {
+        resolver.current = resolve;
+        setConfirmation({
+            type: options.type || 'info',
+            title: options.title || 'Confirmação',
+            text: options.text || '',
+            confirmLabel: options.confirmLabel || 'Confirmar',
+            cancelLabel: options.cancelLabel || 'Cancelar',
+        });
+    }), []);
+
+    const resolveConfirmation = useCallback((confirmed) => {
+        setConfirmation(null);
+        resolver.current?.(confirmed);
+        resolver.current = null;
+    }, []);
+
+    useEffect(() => () => resolver.current?.(false), []);
+
+    return {
+        confirmation,
+        confirm,
+        confirmAction: () => resolveConfirmation(true),
+        cancelConfirmation: () => resolveConfirmation(false),
+    };
+}
+
+export function ConfirmationDialog({ confirmation, onConfirm, onCancel }) {
+    useEffect(() => {
+        if (!confirmation) return undefined;
+
+        const handleKeyDown = (event) => {
+            if (event.key === 'Escape') onCancel();
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [confirmation, onCancel]);
+
+    if (!confirmation) return null;
+
+    return (
+        <div className="confirmation-overlay" role="presentation" onMouseDown={onCancel}>
+            <div
+                className={`toast confirmation-dialog toast-${confirmation.type}`}
+                role="alertdialog"
+                aria-modal="true"
+                aria-labelledby="confirmation-title"
+                aria-describedby="confirmation-text"
+                onMouseDown={(event) => event.stopPropagation()}
+            >
+                <span className="toast-icon" aria-hidden="true">{ICONS[confirmation.type] || ICONS.info}</span>
+                <div className="toast-body">
+                    <div id="confirmation-title" className="toast-title">{confirmation.title}</div>
+                    {confirmation.text && <div id="confirmation-text" className="toast-text">{confirmation.text}</div>}
+                    <div className="confirmation-actions">
+                        <button type="button" className="confirmation-cancel" onClick={onCancel}>
+                            {confirmation.cancelLabel}
+                        </button>
+                        <button type="button" className="confirmation-confirm" onClick={onConfirm} autoFocus>
+                            {confirmation.confirmLabel}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
 export function ToastStack({ toasts, onDismiss }) {
     if (!toasts || toasts.length === 0) return null;
 
