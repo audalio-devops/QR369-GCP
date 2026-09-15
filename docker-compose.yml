@@ -26,6 +26,7 @@ services:
       VA_SERVER_PORT: ${VA_SERVER_PORT:-8080}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
       SPRING_AI_OLLAMA_BASE_URL: ${SPRING_AI_OLLAMA_BASE_URL}
       VA_DB_URL: ${VA_DB_URL}
       VA_DB_USERNAME: ${VA_DB_USERNAME}
@@ -35,6 +36,9 @@ services:
       LOGIN_USR: ${LOGIN_USR}
       LOGIN_PWD: ${LOGIN_PWD}
       APP_PROSPECTING_BASE_URL: http://prospecting-service:8081
+      ZAPI_INSTANCE_ID: ${ZAPI_INSTANCE_ID}
+      ZAPI_TOKEN: ${ZAPI_TOKEN}
+      ZAPI_CLIENT_TOKEN: ${ZAPI_CLIENT_TOKEN}
     depends_on:
       db:
         condition: service_healthy
@@ -56,6 +60,9 @@ services:
       SPRING_DATASOURCE_USERNAME: ${VA_DB_USERNAME}
       SPRING_DATASOURCE_PASSWORD: ${VA_DB_PASSWORD}
       BRASILAPI_BASE_URL: ${BRASILAPI_BASE_URL:-https://brasilapi.com.br}
+      ZAPI_INSTANCE_ID: ${ZAPI_INSTANCE_ID}
+      ZAPI_TOKEN: ${ZAPI_TOKEN}
+      ZAPI_CLIENT_TOKEN: ${ZAPI_CLIENT_TOKEN}
     depends_on:
       db:
         condition: service_healthy

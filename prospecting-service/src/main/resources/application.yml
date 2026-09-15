@@ -12,15 +12,30 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
   datasource:
-    url: ${VA_DB_URL}
-    username: ${VA_DB_USERNAME}
-    password: ${VA_DB_PASSWORD}
+    url: ${SPRING_DATASOURCE_URL:${VA_DB_URL}}
+    username: ${SPRING_DATASOURCE_USERNAME:${VA_DB_USERNAME}}
+    password: ${SPRING_DATASOURCE_PASSWORD:${VA_DB_PASSWORD}}
     driver-class-name: org.postgresql.Driver
 
 prospecting:
   schedule:
-    cron: "0 0 2 * * ?"  # Executa diariamente as 02:00
+    cron: "0 0 8 * * MON"        # Disparo: segunda-feira 08:00
+  working-hours:
+    start: "08:00"
+    end: "16:40"
+  interval:
+    min: 5
+    max: 22
+  message:
+    count: 5
 
 brasilapi:
   base-url: "https://brasilapi.com.br"
+
+zapi:
+  base-url: ${ZAPI_BASE_URL:https://api.z-api.io}
+  instance: ${ZAPI_INSTANCE_ID}
+  token: ${ZAPI_TOKEN}
+  client-token: ${ZAPI_CLIENT_TOKEN}
+
 

@@ -81,3 +81,7 @@ Docker executando e 3 containers rodando:
 Z-API com instãncias configuradas e mensalidade paga
 
 Claude API com crédito.
+
+## Adicionar chuncks(registros) à tabela de vetores
+Path: QR369-GCP/virtual-assistant/src/main/resources/docs
+cmd: $curl.exe -X POST -F "file=@Treinamento_Geral_Assistente.pdf" http://localhost:8080/ingest

@@ -193,9 +193,9 @@ class CnpjServiceBatchTest {
 
         // then
         assertThat(response).isNotNull();
-        assertThat(response.totalLidos()).isEqualTo(3);
-        assertThat(response.totalImportados()).isEqualTo(3);
-        assertThat(response.totalDuplicados()).isEqualTo(0);
+        assertThat(response.getStatus()).isEqualTo("Sucesso");
+        assertThat(response.getRegistrosImportados()).isEqualTo(3);
+        assertThat(response.getMensagem()).contains("Lidos: 3", "Importados: 3", "Duplicados: 0");
 
         verify(buscaCnpjRepository, times(3)).save(any(BuscaCnpj.class));
     }
@@ -219,9 +219,9 @@ class CnpjServiceBatchTest {
 
         // then
         assertThat(response).isNotNull();
-        assertThat(response.totalLidos()).isEqualTo(2);
-        assertThat(response.totalImportados()).isEqualTo(1);
-        assertThat(response.totalDuplicados()).isEqualTo(1);
+        assertThat(response.getStatus()).isEqualTo("Sucesso");
+        assertThat(response.getRegistrosImportados()).isEqualTo(1);
+        assertThat(response.getMensagem()).contains("Lidos: 2", "Importados: 1", "Duplicados: 1");
 
         verify(buscaCnpjRepository, times(1)).save(any(BuscaCnpj.class));
     }

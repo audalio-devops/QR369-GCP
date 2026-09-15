@@ -8,7 +8,9 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.time.LocalDate;
 import java.util.Optional;
 
@@ -66,9 +68,9 @@ class CnpjControllerTest {
 
     @Test
     void deveRetornarImportacaoResponseComSucesso() throws Exception {
-        org.springframework.web.multipart.MultipartFile mockFile = Mockito
-                .mock(org.springframework.web.multipart.MultipartFile.class);
-        ImportacaoResponse expectedResponse = new ImportacaoResponse(10, 8, 2);
+        MultipartFile mockFile = Mockito.mock(MultipartFile.class);
+        String mensagemEsperada = "Lidos: 10, Importados: 8, Duplicados: 2";
+        ImportacaoResponse expectedResponse = new ImportacaoResponse("Sucesso", 8, mensagemEsperada);
 
         when(cnpjService.importarCnpjs(mockFile)).thenReturn(expectedResponse);
 
@@ -76,17 +78,16 @@ class CnpjControllerTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().totalLidos()).isEqualTo(10);
-        assertThat(response.getBody().totalImportados()).isEqualTo(8);
-        assertThat(response.getBody().totalDuplicados()).isEqualTo(2);
+        assertThat(response.getBody().getStatus()).isEqualTo("Sucesso");
+        assertThat(response.getBody().getRegistrosImportados()).isEqualTo(8);
+        assertThat(response.getBody().getMensagem()).isEqualTo(mensagemEsperada);
     }
 
     @Test
     void deveRetornarBadRequestQuandoOcorrerErroNaImportacao() throws Exception {
-        org.springframework.web.multipart.MultipartFile mockFile = Mockito
-                .mock(org.springframework.web.multipart.MultipartFile.class);
+        MultipartFile mockFile = Mockito.mock(MultipartFile.class);
 
-        when(cnpjService.importarCnpjs(mockFile)).thenThrow(new java.io.IOException("Erro de teste"));
+        when(cnpjService.importarCnpjs(mockFile)).thenThrow(new IOException("Erro de teste"));
 
         ResponseEntity<ImportacaoResponse> response = cnpjController.importarCnpj(mockFile);
 
