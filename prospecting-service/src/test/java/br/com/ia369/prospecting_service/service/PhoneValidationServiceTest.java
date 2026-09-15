@@ -1,6 +1,7 @@
 package br.com.ia369.prospecting_service.service;
 
 import br.com.ia369.prospecting_service.client.ZApiClient;
+import br.com.ia369.prospecting_service.repository.ProspectingProcessedRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -9,8 +10,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -23,11 +22,14 @@ class PhoneValidationServiceTest {
     @Mock
     private ZApiClient zApiClient;
 
+    @Mock
+    private ProspectingProcessedRepository processedRepository;
+
     private PhoneValidationService service;
 
     @BeforeEach
     void setUp() {
-        service = new PhoneValidationService(zApiClient);
+        service = new PhoneValidationService(zApiClient, processedRepository);
     }
 
     @Test
@@ -99,10 +101,11 @@ class PhoneValidationServiceTest {
     void testValidarTelefoneSucessoTel1() {
         when(zApiClient.phoneExists("5511999998888")).thenReturn(true);
 
-        Optional<String> resultado = service.validarTelefone("(11) 99999-8888", "(11) 3333-4444");
+        PhoneValidationService.ResultadoValidacaoTelefone resultado = service.validarTelefone("(11) 99999-8888", "(11) 3333-4444");
 
-        assertTrue(resultado.isPresent());
-        assertEquals("5511999998888", resultado.get());
+        assertTrue(resultado.aptoParaContato());
+        assertEquals("5511999998888", resultado.telefone());
+        verify(processedRepository).existsByTelefoneValido("5511999998888");
         verify(zApiClient).phoneExists("5511999998888");
         verify(zApiClient, never()).phoneExists("551133334444");
     }
@@ -113,21 +116,36 @@ class PhoneValidationServiceTest {
         when(zApiClient.phoneExists("5511999998888")).thenReturn(true);
 
         // telefone1 é um número sem DDD válido ("11111111"), telefone2 é celular válido
-        Optional<String> resultado = service.validarTelefone("11111111", "11999998888");
+        PhoneValidationService.ResultadoValidacaoTelefone resultado = service.validarTelefone("11111111", "11999998888");
 
-        assertTrue(resultado.isPresent());
-        assertEquals("5511999998888", resultado.get());
+        assertTrue(resultado.aptoParaContato());
+        assertEquals("5511999998888", resultado.telefone());
         // Garante que não chamou a Z-API para o número1 inválido
         verify(zApiClient, never()).phoneExists(argThat(s -> s.contains("11111111")));
         verify(zApiClient).phoneExists("5511999998888");
     }
 
     @Test
-    @DisplayName("Deve retornar Optional.empty se ambos os telefones forem inválidos no formato BR")
+    @DisplayName("Deve informar ausência de telefone válido se ambos forem inválidos no formato BR")
     void testValidarTelefoneAmbosInvalidos() {
-        Optional<String> resultado = service.validarTelefone("1234", "00000000");
+        PhoneValidationService.ResultadoValidacaoTelefone resultado = service.validarTelefone("1234", "00000000");
 
-        assertFalse(resultado.isPresent());
+        assertEquals(PhoneValidationService.ResultadoValidacaoTelefone.Status.NENHUM_TELEFONE_VALIDO,
+                resultado.status());
+        verify(zApiClient, never()).phoneExists(anyString());
+    }
+
+    @Test
+    @DisplayName("Deve informar explicitamente quando o telefone válido já foi contactado")
+    void testValidarTelefoneJaContactado() {
+        when(processedRepository.existsByTelefoneValido("5511999998888")).thenReturn(true);
+
+        PhoneValidationService.ResultadoValidacaoTelefone resultado =
+                service.validarTelefone("(11) 99999-8888", "(11) 3333-4444");
+
+        assertTrue(resultado.jaContactado());
+        assertEquals("5511999998888", resultado.telefone());
+        verify(processedRepository).existsByTelefoneValido("5511999998888");
         verify(zApiClient, never()).phoneExists(anyString());
     }
 }

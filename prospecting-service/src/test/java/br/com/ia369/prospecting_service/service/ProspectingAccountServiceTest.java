@@ -17,7 +17,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -99,7 +98,8 @@ class ProspectingAccountServiceTest {
         testLead.setTelefone1("11999998888");
 
         when(dataSourceRepository.findByStatusIsNull()).thenReturn(List.of(testLead));
-        when(phoneValidationService.validarTelefone(any(), any())).thenReturn(Optional.of("5511999998888"));
+        when(phoneValidationService.validarTelefone(any(), any())).thenReturn(
+                PhoneValidationService.ResultadoValidacaoTelefone.aptoParaContato("5511999998888"));
         when(messageService.sortearMensagem()).thenReturn("Olá Contador");
 
         service.startProspecting();
@@ -127,13 +127,34 @@ class ProspectingAccountServiceTest {
         proximoLead.setTelefone1("11999991111");
 
         when(dataSourceRepository.findByStatusIsNull()).thenReturn(List.of(leadSemWhatsapp, proximoLead));
-        when(phoneValidationService.validarTelefone("11999990000", null)).thenReturn(Optional.empty());
-        when(phoneValidationService.validarTelefone("11999991111", null)).thenReturn(Optional.of("5511999991111"));
+        when(phoneValidationService.validarTelefone("11999990000", null)).thenReturn(
+                PhoneValidationService.ResultadoValidacaoTelefone.nenhumTelefoneValido());
+        when(phoneValidationService.validarTelefone("11999991111", null)).thenReturn(
+                PhoneValidationService.ResultadoValidacaoTelefone.aptoParaContato("5511999991111"));
         when(messageService.sortearMensagem()).thenReturn("Ola Contador");
 
         service.startProspecting();
 
         assertTrue(temposDeEspera.isEmpty(), "Nao deve haver espera antes da leitura do proximo lead");
         verify(zApiClient).sendTextMessage("5511999991111", "Ola Contador");
+    }
+
+    @Test
+    @DisplayName("Não deve enviar mensagem para número já contactado")
+    void naoDeveEnviarMensagemParaNumeroJaContactado() {
+        ProspectingDataSource lead = new ProspectingDataSource();
+        lead.setCnpj("33333333000133");
+        lead.setTelefone1("11999992222");
+
+        when(dataSourceRepository.findByStatusIsNull()).thenReturn(List.of(lead));
+        when(phoneValidationService.validarTelefone("11999992222", null)).thenReturn(
+                PhoneValidationService.ResultadoValidacaoTelefone.jaContactado("55119999992222"));
+
+        service.startProspecting();
+
+        assertEquals("Número já contactado", lead.getStatus());
+        verify(dataSourceRepository).save(lead);
+        verify(zApiClient, never()).sendTextMessage(anyString(), anyString());
+        verify(processedRepository, never()).save(any());
     }
 }

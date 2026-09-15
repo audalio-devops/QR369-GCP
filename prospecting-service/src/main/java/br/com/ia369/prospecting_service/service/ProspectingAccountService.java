@@ -18,7 +18,6 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.List;
-import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -42,6 +41,7 @@ public class ProspectingAccountService {
     private static final ZoneId ZONE_SP = ZoneId.of("America/Sao_Paulo");
 
     private static final String STATUS_NENHUM_TELEFONE = "Nenhum telefone válido";
+    private static final String STATUS_NUMERO_JA_CONTACTADO = "Número já contactado";
     private static final String STATUS_CONTATO_INICIAL = "Contato Inicial";
     private static final String AUDIT_OK = "Ok";
     private static final String AUDIT_ERROR = "Error";
@@ -219,10 +219,20 @@ public class ProspectingAccountService {
         log.info(msgProcessando);
         registrarAuditoria("Funcionando", msgProcessando, lead.getCnpj());
 
-        Optional<String> telefoneValidoOpt = phoneValidationService.validarTelefone(
+        PhoneValidationService.ResultadoValidacaoTelefone resultadoTelefone = phoneValidationService.validarTelefone(
                 lead.getTelefone1(), lead.getTelefone2());
 
-        if (telefoneValidoOpt.isEmpty()) {
+        if (resultadoTelefone.jaContactado()) {
+            lead.setStatus(STATUS_NUMERO_JA_CONTACTADO);
+            dataSourceRepository.save(lead);
+            String msgJaContactado = "CNPJ " + lead.getCnpj() + ": número já contactado ("
+                    + resultadoTelefone.telefone() + ").";
+            log.info(msgJaContactado);
+            registrarAuditoria("Ignorado", msgJaContactado, lead.getCnpj());
+            return false;
+        }
+
+        if (!resultadoTelefone.aptoParaContato()) {
             // Nenhum telefone válido
             lead.setStatus(STATUS_NENHUM_TELEFONE);
             dataSourceRepository.save(lead);
@@ -232,7 +242,7 @@ public class ProspectingAccountService {
             return false;
         }
 
-        String telefoneValido = telefoneValidoOpt.get();
+        String telefoneValido = resultadoTelefone.telefone();
 
         // Atualizar data source com o telefone válido
         lead.setStatus(telefoneValido);

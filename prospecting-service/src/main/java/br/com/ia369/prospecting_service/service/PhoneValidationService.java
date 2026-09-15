@@ -1,11 +1,11 @@
 package br.com.ia369.prospecting_service.service;
 
 import br.com.ia369.prospecting_service.client.ZApiClient;
+import br.com.ia369.prospecting_service.repository.ProspectingProcessedRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.util.Optional;
 import java.util.regex.Pattern;
 
 /**
@@ -30,9 +30,11 @@ public class PhoneValidationService {
     private static final Pattern PATTERN_TELEFONE_BR = Pattern.compile("^55" + REGEX_DDD_VALIDO + "(9[0-9]{8}|[2-5][0-9]{7})$");
 
     private final ZApiClient zApiClient;
+    private final ProspectingProcessedRepository processedRepository;
 
-    public PhoneValidationService(ZApiClient zApiClient) {
+    public PhoneValidationService(ZApiClient zApiClient, ProspectingProcessedRepository processedRepository) {
         this.zApiClient = zApiClient;
+        this.processedRepository = processedRepository;
     }
 
     /**
@@ -41,15 +43,20 @@ public class PhoneValidationService {
      *
      * @param telefone1 primeiro telefone (pode ser nulo)
      * @param telefone2 segundo telefone (pode ser nulo)
-     * @return Optional com o primeiro telefone válido encontrado, ou empty se nenhum for válido
+     * @return resultado que diferencia telefone apto para contato, número já contactado e
+     *         ausência de telefone válido
      */
-    public Optional<String> validarTelefone(String telefone1, String telefone2) {
+    public ResultadoValidacaoTelefone validarTelefone(String telefone1, String telefone2) {
         if (hasValue(telefone1)) {
             String norm1 = normalizarTelefone(telefone1);
             log.info("Verificando telefone1: {} (normalizado: {})", telefone1, norm1);
             if (isTelefoneValidoBrasil(norm1)) {
+                if (processedRepository.existsByTelefoneValido(norm1)) {
+                    log.info("Telefone1 ja contactado: {}", norm1);
+                    return ResultadoValidacaoTelefone.jaContactado(norm1);
+                }
                 if (zApiClient.phoneExists(norm1)) {
-                    return Optional.of(norm1);
+                    return ResultadoValidacaoTelefone.aptoParaContato(norm1);
                 }
             } else {
                 log.warn("telefone1 não é um número fixo ou celular válido do Brasil: {}", norm1);
@@ -60,8 +67,12 @@ public class PhoneValidationService {
             String norm2 = normalizarTelefone(telefone2);
             log.info("Verificando telefone2: {} (normalizado: {})", telefone2, norm2);
             if (isTelefoneValidoBrasil(norm2)) {
+                if (processedRepository.existsByTelefoneValido(norm2)) {
+                    log.info("Telefone2 ja contactado: {}", norm2);
+                    return ResultadoValidacaoTelefone.jaContactado(norm2);
+                }
                 if (zApiClient.phoneExists(norm2)) {
-                    return Optional.of(norm2);
+                    return ResultadoValidacaoTelefone.aptoParaContato(norm2);
                 }
             } else {
                 log.warn("telefone2 não é um número fixo ou celular válido do Brasil: {}", norm2);
@@ -69,7 +80,7 @@ public class PhoneValidationService {
         }
 
         log.warn("Nenhum telefone válido encontrado (tel1={}, tel2={})", telefone1, telefone2);
-        return Optional.empty();
+        return ResultadoValidacaoTelefone.nenhumTelefoneValido();
     }
 
     /**
@@ -116,5 +127,34 @@ public class PhoneValidationService {
 
     private boolean hasValue(String s) {
         return s != null && !s.trim().isEmpty();
+    }
+
+    public record ResultadoValidacaoTelefone(Status status, String telefone) {
+
+        public enum Status {
+            APTO_PARA_CONTATO,
+            JA_CONTACTADO,
+            NENHUM_TELEFONE_VALIDO
+        }
+
+        public static ResultadoValidacaoTelefone aptoParaContato(String telefone) {
+            return new ResultadoValidacaoTelefone(Status.APTO_PARA_CONTATO, telefone);
+        }
+
+        public static ResultadoValidacaoTelefone jaContactado(String telefone) {
+            return new ResultadoValidacaoTelefone(Status.JA_CONTACTADO, telefone);
+        }
+
+        public static ResultadoValidacaoTelefone nenhumTelefoneValido() {
+            return new ResultadoValidacaoTelefone(Status.NENHUM_TELEFONE_VALIDO, null);
+        }
+
+        public boolean aptoParaContato() {
+            return status == Status.APTO_PARA_CONTATO;
+        }
+
+        public boolean jaContactado() {
+            return status == Status.JA_CONTACTADO;
+        }
     }
 }
