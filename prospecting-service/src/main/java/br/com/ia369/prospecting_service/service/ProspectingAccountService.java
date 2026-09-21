@@ -121,7 +121,7 @@ public class ProspectingAccountService {
         registrarAuditoria("Iniciado", msgInicio, null);
 
         try {
-            List<ProspectingDataSource> leads = dataSourceRepository.findByStatusIsNull();
+            List<ProspectingDataSource> leads = dataSourceRepository.findByStatusIsNullOrderByPrioridadeAsc();
             String msgLeads = "Leads pendentes encontrados: " + leads.size();
             log.info(msgLeads);
             registrarAuditoria("Iniciado", msgLeads, null);

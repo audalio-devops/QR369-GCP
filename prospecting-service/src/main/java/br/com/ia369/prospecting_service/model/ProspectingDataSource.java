@@ -31,4 +31,7 @@ public class ProspectingDataSource {
 
     @Column(length = 100)
     private String status;
+
+    @Column(name = "prioridade", columnDefinition = "NUMERIC(1) DEFAULT 1")
+    private Integer prioridade = 1;
 }

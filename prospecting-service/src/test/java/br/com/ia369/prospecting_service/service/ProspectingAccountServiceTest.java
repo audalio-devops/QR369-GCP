@@ -97,7 +97,7 @@ class ProspectingAccountServiceTest {
         testLead.setRazaoSocial("TesteControlado1");
         testLead.setTelefone1("11999998888");
 
-        when(dataSourceRepository.findByStatusIsNull()).thenReturn(List.of(testLead));
+        when(dataSourceRepository.findByStatusIsNullOrderByPrioridadeAsc()).thenReturn(List.of(testLead));
         when(phoneValidationService.validarTelefone(any(), any())).thenReturn(
                 PhoneValidationService.ResultadoValidacaoTelefone.aptoParaContato("5511999998888"));
         when(messageService.sortearMensagem()).thenReturn("Olá Contador");
@@ -126,7 +126,7 @@ class ProspectingAccountServiceTest {
         proximoLead.setRazaoSocial("TesteControladoComWhatsapp");
         proximoLead.setTelefone1("11999991111");
 
-        when(dataSourceRepository.findByStatusIsNull()).thenReturn(List.of(leadSemWhatsapp, proximoLead));
+        when(dataSourceRepository.findByStatusIsNullOrderByPrioridadeAsc()).thenReturn(List.of(leadSemWhatsapp, proximoLead));
         when(phoneValidationService.validarTelefone("11999990000", null)).thenReturn(
                 PhoneValidationService.ResultadoValidacaoTelefone.nenhumTelefoneValido());
         when(phoneValidationService.validarTelefone("11999991111", null)).thenReturn(
@@ -144,9 +144,10 @@ class ProspectingAccountServiceTest {
     void naoDeveEnviarMensagemParaNumeroJaContactado() {
         ProspectingDataSource lead = new ProspectingDataSource();
         lead.setCnpj("33333333000133");
+        lead.setRazaoSocial("TesteControladoContactado");
         lead.setTelefone1("11999992222");
 
-        when(dataSourceRepository.findByStatusIsNull()).thenReturn(List.of(lead));
+        when(dataSourceRepository.findByStatusIsNullOrderByPrioridadeAsc()).thenReturn(List.of(lead));
         when(phoneValidationService.validarTelefone("11999992222", null)).thenReturn(
                 PhoneValidationService.ResultadoValidacaoTelefone.jaContactado("55119999992222"));
 
@@ -156,5 +157,34 @@ class ProspectingAccountServiceTest {
         verify(dataSourceRepository).save(lead);
         verify(zApiClient, never()).sendTextMessage(anyString(), anyString());
         verify(processedRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Deve inicializar ProspectingDataSource com prioridade default igual a 1 e consultar com ordenacao ascendente")
+    void deveInicializarComPrioridadeDefault1EConsultarOrdenado() {
+        ProspectingDataSource novoLead = new ProspectingDataSource();
+        assertEquals(1, novoLead.getPrioridade(), "Prioridade default deve ser 1");
+
+        ProspectingDataSource leadPrio1 = new ProspectingDataSource();
+        leadPrio1.setCnpj("11111111000111");
+        leadPrio1.setRazaoSocial("TesteControladoPrio1");
+        leadPrio1.setTelefone1("11999991111");
+        leadPrio1.setPrioridade(1);
+
+        ProspectingDataSource leadPrio2 = new ProspectingDataSource();
+        leadPrio2.setCnpj("22222222000122");
+        leadPrio2.setRazaoSocial("TesteControladoPrio2");
+        leadPrio2.setTelefone1("11999992222");
+        leadPrio2.setPrioridade(2);
+
+        when(dataSourceRepository.findByStatusIsNullOrderByPrioridadeAsc()).thenReturn(List.of(leadPrio1, leadPrio2));
+        when(phoneValidationService.validarTelefone(any(), any())).thenReturn(
+                PhoneValidationService.ResultadoValidacaoTelefone.nenhumTelefoneValido());
+
+        service.startProspecting();
+
+        verify(dataSourceRepository).findByStatusIsNullOrderByPrioridadeAsc();
+        assertEquals("Nenhum telefone válido", leadPrio1.getStatus());
+        assertEquals("Nenhum telefone válido", leadPrio2.getStatus());
     }
 }

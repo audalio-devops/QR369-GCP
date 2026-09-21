@@ -41,6 +41,7 @@ public class ImportacaoService {
                 // Usar -1 para garantir que colunas vazias no final sejam mantidas
                 String[] fields = line.split(",", -1);
                 ProspectingDataSource dataSource = new ProspectingDataSource();
+                dataSource.setPrioridade(1);
 
                 if (tipo == 1) {
                     // Importa se tiver pelo menos um CNPJ
