@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { ConfirmationDialog, useConfirmation, useToasts, ToastStack } from '../Toast';
 
+// Quantidade máxima de registros de auditoria exibidos na tabela
+const AUDIT_LOGS_LIMIT = 30;
+
 const PanelProspeccaoContadores = ({ isActive }) => {
     const [auditLogs, setAuditLogs] = useState([]);
     const [isLoadingLogs, setIsLoadingLogs] = useState(false);
     const [statusInfo, setStatusInfo] = useState({
         checkedAt: null,
         isRunning: null,
+        lastError: null,
         message: ''
     });
     const { toasts, pushToast, dismissToast } = useToasts();
@@ -15,10 +19,10 @@ const PanelProspeccaoContadores = ({ isActive }) => {
     const fetchAuditLogs = async () => {
         setIsLoadingLogs(true);
         try {
-            const response = await fetch('/prospecting-account/audit');
+            const response = await fetch(`/prospecting-account/audit?limit=${AUDIT_LOGS_LIMIT}`);
             if (response.ok) {
                 const data = await response.json();
-                setAuditLogs(data);
+                setAuditLogs(data.slice(0, AUDIT_LOGS_LIMIT));
             } else {
                 console.error('Erro ao buscar logs de auditoria:', response.statusText);
             }
@@ -29,7 +33,7 @@ const PanelProspeccaoContadores = ({ isActive }) => {
         }
     };
 
-    const handleVerificarStatus = async () => {
+    const handleVerificarStatus = async (isAutoPoll = false) => {
         try {
             const response = await fetch('/prospecting-account/status');
             const now = new Date();
@@ -40,13 +44,22 @@ const PanelProspeccaoContadores = ({ isActive }) => {
                 setStatusInfo({
                     checkedAt: formattedTime,
                     isRunning: data.running,
-                    message: data.running ? 'Prospecção em andamento.' : 'Prospecção parada.'
+                    lastError: data.lastError || null,
+                    message: data.running ? 'Prospecção em andamento.' : (data.lastError || 'Prospecção parada.')
                 });
-                pushToast({
-                    type: 'info',
-                    title: 'Status verificado',
-                    text: `Concluída às ${formattedTime}. Status: ${data.running ? 'EM EXECUÇÃO' : 'PARADO'}`
-                });
+                if (data.lastError) {
+                    pushToast({
+                        type: 'error',
+                        title: 'Erro na Prospecção',
+                        text: data.lastError
+                    });
+                } else if (!isAutoPoll) {
+                    pushToast({
+                        type: 'info',
+                        title: 'Status verificado',
+                        text: `Concluída às ${formattedTime}. Status: ${data.running ? 'EM EXECUÇÃO' : 'PARADO'}`
+                    });
+                }
             } else {
                 throw new Error(`Status HTTP ${response.status}`);
             }
@@ -55,11 +68,13 @@ const PanelProspeccaoContadores = ({ isActive }) => {
                 ...prev,
                 message: 'Erro ao obter status do serviço.'
             }));
-            pushToast({
-                type: 'error',
-                title: 'Falha ao verificar status',
-                text: err.message
-            });
+            if (!isAutoPoll) {
+                pushToast({
+                    type: 'error',
+                    title: 'Falha ao verificar status',
+                    text: err.message
+                });
+            }
         } finally {
             fetchAuditLogs();
         }
@@ -122,6 +137,18 @@ const PanelProspeccaoContadores = ({ isActive }) => {
         }
     }, [isActive]);
 
+    useEffect(() => {
+        let timer;
+        if (isActive && statusInfo.isRunning) {
+            timer = setInterval(() => {
+                handleVerificarStatus(true);
+            }, 3000);
+        }
+        return () => {
+            if (timer) clearInterval(timer);
+        };
+    }, [isActive, statusInfo.isRunning]);
+
     const formatDataEvento = (isoString) => {
         if (!isoString) return '-';
         try {
@@ -178,6 +205,25 @@ const PanelProspeccaoContadores = ({ isActive }) => {
                     </div>
                 </div>
 
+                {/* Banner de Erro Crítico na tela (ex: Instância Z-API desconectada) */}
+                {statusInfo.lastError && (
+                    <div className="prospeccao-error-box" id="prospeccao-status-error" style={{
+                        backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                        border: '1px solid rgba(239, 68, 68, 0.4)',
+                        borderRadius: '8px',
+                        padding: '12px 16px',
+                        marginBottom: '16px',
+                        color: '#f87171',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        fontWeight: 600
+                    }}>
+                        <span style={{ fontSize: '20px' }}>⚠️</span>
+                        <span>{statusInfo.lastError}</span>
+                    </div>
+                )}
+
                 {/* Bloco com o resultado da última verificação */}
                 <div className="status-monitor-box">
                     <div className="status-monitor-item">
@@ -201,13 +247,13 @@ const PanelProspeccaoContadores = ({ isActive }) => {
                 {/* Tabela de Logs de Auditoria */}
                 <div className="prospeccao-audit-section">
                     <div className="audit-section-header">
-                        <h4>📋 Registros de Auditoria Mais Recentes (Máx. 10)</h4>
+                        <h4>📋 Registros de Auditoria Mais Recentes (Máx. {AUDIT_LOGS_LIMIT})</h4>
                         <button className="btn-refresh-audit" onClick={fetchAuditLogs} disabled={isLoadingLogs}>
                             🔄 {isLoadingLogs ? 'Atualizando...' : 'Atualizar Logs'}
                         </button>
                     </div>
 
-                    <div className="prospeccao-table-container">
+                    <div className="prospeccao-table-container audit-table-container">
                         <table id="audit-table">
                             <thead>
                                 <tr>

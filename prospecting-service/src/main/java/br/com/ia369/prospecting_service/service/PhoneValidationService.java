@@ -1,6 +1,7 @@
 package br.com.ia369.prospecting_service.service;
 
 import br.com.ia369.prospecting_service.client.ZApiClient;
+import br.com.ia369.prospecting_service.exception.ZApiDisconnectedException;
 import br.com.ia369.prospecting_service.repository.ProspectingProcessedRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,6 +39,15 @@ public class PhoneValidationService {
     }
 
     /**
+     * Verifica se a Z-API está conectada ao WhatsApp.
+     *
+     * @return true se conectada, false caso contrário
+     */
+    public boolean isZApiConnected() {
+        return zApiClient.isConnected();
+    }
+
+    /**
      * Valida se telefone1 ou telefone2 é um número válido do Brasil (fixo ou celular)
      * e se existe no WhatsApp.
      *
@@ -45,8 +55,11 @@ public class PhoneValidationService {
      * @param telefone2 segundo telefone (pode ser nulo)
      * @return resultado que diferencia telefone apto para contato, número já contactado e
      *         ausência de telefone válido
+     * @throws ZApiDisconnectedException se a instância da Z-API estiver desconectada
      */
     public ResultadoValidacaoTelefone validarTelefone(String telefone1, String telefone2) {
+        boolean zApiConexaoVerificada = false;
+
         if (hasValue(telefone1)) {
             String norm1 = normalizarTelefone(telefone1);
             log.info("Verificando telefone1: {} (normalizado: {})", telefone1, norm1);
@@ -54,6 +67,12 @@ public class PhoneValidationService {
                 if (processedRepository.existsByTelefoneValido(norm1)) {
                     log.info("Telefone1 ja contactado: {}", norm1);
                     return ResultadoValidacaoTelefone.jaContactado(norm1);
+                }
+                if (!zApiConexaoVerificada) {
+                    if (!zApiClient.isConnected()) {
+                        throw new ZApiDisconnectedException("Erro: Instância Web Z-API desconectada");
+                    }
+                    zApiConexaoVerificada = true;
                 }
                 if (zApiClient.phoneExists(norm1)) {
                     return ResultadoValidacaoTelefone.aptoParaContato(norm1);
@@ -70,6 +89,12 @@ public class PhoneValidationService {
                 if (processedRepository.existsByTelefoneValido(norm2)) {
                     log.info("Telefone2 ja contactado: {}", norm2);
                     return ResultadoValidacaoTelefone.jaContactado(norm2);
+                }
+                if (!zApiConexaoVerificada) {
+                    if (!zApiClient.isConnected()) {
+                        throw new ZApiDisconnectedException("Erro: Instância Web Z-API desconectada");
+                    }
+                    zApiConexaoVerificada = true;
                 }
                 if (zApiClient.phoneExists(norm2)) {
                     return ResultadoValidacaoTelefone.aptoParaContato(norm2);

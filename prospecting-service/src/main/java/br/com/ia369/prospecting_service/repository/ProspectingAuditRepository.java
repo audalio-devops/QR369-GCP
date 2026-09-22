@@ -4,8 +4,9 @@ import br.com.ia369.prospecting_service.model.ProspectingAudit;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDateTime;
+import org.springframework.data.domain.Pageable;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
@@ -21,4 +22,9 @@ public interface ProspectingAuditRepository extends JpaRepository<ProspectingAud
      * Retorna os 10 registros de auditoria mais recentes.
      */
     List<ProspectingAudit> findTop10ByOrderByDataEventoDesc();
+
+    /**
+     * Retorna registros de auditoria mais recentes com suporte a paginação/limite.
+     */
+    List<ProspectingAudit> findByOrderByDataEventoDesc(Pageable pageable);
 }

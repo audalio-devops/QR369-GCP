@@ -1,6 +1,7 @@
 package br.com.ia369.prospecting_service.service;
 
 import br.com.ia369.prospecting_service.client.ZApiClient;
+import br.com.ia369.prospecting_service.exception.ZApiDisconnectedException;
 import br.com.ia369.prospecting_service.model.ProspectingAudit;
 import br.com.ia369.prospecting_service.model.ProspectingDataSource;
 import br.com.ia369.prospecting_service.model.ProspectingProcessed;
@@ -13,6 +14,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import org.springframework.data.domain.PageRequest;
 import java.time.DayOfWeek;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -48,6 +50,7 @@ public class ProspectingAccountService {
 
     private final AtomicBoolean isRunning = new AtomicBoolean(false);
     private final AtomicBoolean shouldStop = new AtomicBoolean(false);
+    private volatile String lastError;
 
     private final ProspectingDataSourceRepository dataSourceRepository;
     private final ProspectingProcessedRepository processedRepository;
@@ -93,6 +96,13 @@ public class ProspectingAccountService {
     }
 
     /**
+     * Retorna a última mensagem de erro registrada na execução.
+     */
+    public String getLastError() {
+        return lastError;
+    }
+
+    /**
      * Sinaliza para a execução corrente que ela deve parar.
      */
     public void stop() {
@@ -112,6 +122,7 @@ public class ProspectingAccountService {
             return;
         }
         shouldStop.set(false);
+        this.lastError = null;
 
         String msgInicioEndpoint = "Prospecção de contadores iniciada via endpoint.";
         String msgInicio = "=== Prospecção de Contadores INICIADA ===";
@@ -150,6 +161,13 @@ public class ProspectingAccountService {
                     if (mensagemEnviada && (i + 1) < leads.size() && !shouldStop.get()) {
                         aguardarIntervalo();
                     }
+                } catch (ZApiDisconnectedException ex) {
+                    String cnpjLead = (lead != null) ? lead.getCnpj() : null;
+                    String msgErroZApi = "Erro: Instância Web Z-API desconectada";
+                    log.error("{} ao processar lead (CNPJ={})", msgErroZApi, cnpjLead);
+                    registrarAuditoria("Erro", msgErroZApi, cnpjLead);
+                    this.lastError = msgErroZApi;
+                    break;
                 } catch (Exception ex) {
                     String cnpjLead = (lead != null) ? lead.getCnpj() : null;
                     String msgErroLead = "Falha ao processar lead (CNPJ=" + cnpjLead + "): " + ex.getMessage()
@@ -177,6 +195,16 @@ public class ProspectingAccountService {
         String logMsg = isRunning ? "=== Monitoramento EXECUTADO - EM EXECUÇÃO ==="
                 : "=== Monitoramento EXECUTADO - PARADO ===";
         registrarAuditoria(status, logMsg, null);
+    }
+
+    public static final int DEFAULT_AUDIT_LOGS_LIMIT = 30;
+
+    /**
+     * Retorna os logs de auditoria mais recentes com limite configurável.
+     */
+    public List<ProspectingAudit> getRecentAuditLogs(int limit) {
+        int max = (limit <= 0) ? DEFAULT_AUDIT_LOGS_LIMIT : limit;
+        return auditRepository.findByOrderByDataEventoDesc(PageRequest.of(0, max));
     }
 
     /**
