@@ -58,6 +58,22 @@ public class PhoneValidationService {
      * @throws ZApiDisconnectedException se a instância da Z-API estiver desconectada
      */
     public ResultadoValidacaoTelefone validarTelefone(String telefone1, String telefone2) {
+        return validarTelefone(telefone1, telefone2, null);
+    }
+
+    /**
+     * Valida se telefone1 ou telefone2 é um número válido do Brasil (fixo ou celular)
+     * e se existe no WhatsApp, permitindo executar um callback de monitoramento quando
+     * a conexão da Z-API for confirmada antes da verificação no WhatsApp.
+     *
+     * @param telefone1 primeiro telefone (pode ser nulo)
+     * @param telefone2 segundo telefone (pode ser nulo)
+     * @param onZApiConnected callback a ser invocado quando a conexão da Z-API for confirmada
+     * @return resultado que diferencia telefone apto para contato, número já contactado e
+     *         ausência de telefone válido
+     * @throws ZApiDisconnectedException se a instância da Z-API estiver desconectada
+     */
+    public ResultadoValidacaoTelefone validarTelefone(String telefone1, String telefone2, Runnable onZApiConnected) {
         boolean zApiConexaoVerificada = false;
 
         if (hasValue(telefone1)) {
@@ -73,6 +89,9 @@ public class PhoneValidationService {
                         throw new ZApiDisconnectedException("Erro: Instância Web Z-API desconectada");
                     }
                     zApiConexaoVerificada = true;
+                    if (onZApiConnected != null) {
+                        onZApiConnected.run();
+                    }
                 }
                 if (zApiClient.phoneExists(norm1)) {
                     return ResultadoValidacaoTelefone.aptoParaContato(norm1);
@@ -95,6 +114,9 @@ public class PhoneValidationService {
                         throw new ZApiDisconnectedException("Erro: Instância Web Z-API desconectada");
                     }
                     zApiConexaoVerificada = true;
+                    if (onZApiConnected != null) {
+                        onZApiConnected.run();
+                    }
                 }
                 if (zApiClient.phoneExists(norm2)) {
                     return ResultadoValidacaoTelefone.aptoParaContato(norm2);

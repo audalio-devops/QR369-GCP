@@ -18,9 +18,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -99,7 +102,7 @@ class ProspectingAccountServiceTest {
         testLead.setTelefone1("11999998888");
 
         when(dataSourceRepository.findByStatusIsNullOrderByPrioridadeAsc()).thenReturn(List.of(testLead));
-        when(phoneValidationService.validarTelefone(any(), any())).thenReturn(
+        when(phoneValidationService.validarTelefone(any(), any(), any())).thenReturn(
                 PhoneValidationService.ResultadoValidacaoTelefone.aptoParaContato("5511999998888"));
         when(messageService.sortearMensagem()).thenReturn("Olá Contador");
 
@@ -128,9 +131,9 @@ class ProspectingAccountServiceTest {
         proximoLead.setTelefone1("11999991111");
 
         when(dataSourceRepository.findByStatusIsNullOrderByPrioridadeAsc()).thenReturn(List.of(leadSemWhatsapp, proximoLead));
-        when(phoneValidationService.validarTelefone("11999990000", null)).thenReturn(
+        when(phoneValidationService.validarTelefone(eq("11999990000"), isNull(), any())).thenReturn(
                 PhoneValidationService.ResultadoValidacaoTelefone.nenhumTelefoneValido());
-        when(phoneValidationService.validarTelefone("11999991111", null)).thenReturn(
+        when(phoneValidationService.validarTelefone(eq("11999991111"), isNull(), any())).thenReturn(
                 PhoneValidationService.ResultadoValidacaoTelefone.aptoParaContato("5511999991111"));
         when(messageService.sortearMensagem()).thenReturn("Ola Contador");
 
@@ -149,7 +152,7 @@ class ProspectingAccountServiceTest {
         lead.setTelefone1("11999992222");
 
         when(dataSourceRepository.findByStatusIsNullOrderByPrioridadeAsc()).thenReturn(List.of(lead));
-        when(phoneValidationService.validarTelefone("11999992222", null)).thenReturn(
+        when(phoneValidationService.validarTelefone(eq("11999992222"), isNull(), any())).thenReturn(
                 PhoneValidationService.ResultadoValidacaoTelefone.jaContactado("55119999992222"));
 
         service.startProspecting();
@@ -179,7 +182,7 @@ class ProspectingAccountServiceTest {
         leadPrio2.setPrioridade(2);
 
         when(dataSourceRepository.findByStatusIsNullOrderByPrioridadeAsc()).thenReturn(List.of(leadPrio1, leadPrio2));
-        when(phoneValidationService.validarTelefone(any(), any())).thenReturn(
+        when(phoneValidationService.validarTelefone(any(), any(), any())).thenReturn(
                 PhoneValidationService.ResultadoValidacaoTelefone.nenhumTelefoneValido());
 
         service.startProspecting();
@@ -203,7 +206,7 @@ class ProspectingAccountServiceTest {
         lead2.setTelefone1("11999992222");
 
         when(dataSourceRepository.findByStatusIsNullOrderByPrioridadeAsc()).thenReturn(List.of(lead1, lead2));
-        when(phoneValidationService.validarTelefone("11999991111", null))
+        when(phoneValidationService.validarTelefone(eq("11999991111"), isNull(), any()))
                 .thenThrow(new ZApiDisconnectedException("Erro: Instância Web Z-API desconectada"));
 
         service.startProspecting();
@@ -224,7 +227,7 @@ class ProspectingAccountServiceTest {
         assertNull(lead2.getStatus(), "O lead 2 sequer deve ter sido tocado");
 
         // 3. Não deve tentar validar o lead 2 (processo parado na sequência)
-        verify(phoneValidationService, never()).validarTelefone("11999992222", null);
+        verify(phoneValidationService, never()).validarTelefone(eq("11999992222"), isNull(), any());
 
         // 4. lastError deve estar preenchido
         assertEquals("Erro: Instância Web Z-API desconectada", service.getLastError());
@@ -246,5 +249,39 @@ class ProspectingAccountServiceTest {
         assertEquals(1, logs.size());
         assertEquals("Iniciado", logs.get(0).getStatus());
         verify(auditRepository).findByOrderByDataEventoDesc(org.springframework.data.domain.PageRequest.of(0, 30));
+    }
+
+    @Test
+    @DisplayName("Deve verificar status e monitorar com sucesso quando Z-API estiver conectada")
+    void testVerificarStatusEMonitorarComZApiConectada() {
+        when(zApiClient.isConnected()).thenReturn(true);
+
+        Map<String, Object> status = service.verificarStatusEMonitorar();
+
+        assertFalse((Boolean) status.get("running"));
+        assertTrue((Boolean) status.get("zapiConnected"));
+        assertNull(status.get("lastError"));
+
+        verify(auditRepository).save(auditCaptor.capture());
+        ProspectingAudit audit = auditCaptor.getValue();
+        assertEquals("Parado", audit.getStatus());
+        assertEquals("=== Monitoramento EXECUTADO - PARADO ===", audit.getLog());
+    }
+
+    @Test
+    @DisplayName("Deve verificar status e registrar erro quando Z-API estiver desconectada")
+    void testVerificarStatusEMonitorarComZApiDesconectada() {
+        when(zApiClient.isConnected()).thenReturn(false);
+
+        Map<String, Object> status = service.verificarStatusEMonitorar();
+
+        assertFalse((Boolean) status.get("running"));
+        assertFalse((Boolean) status.get("zapiConnected"));
+        assertEquals("Erro: Instância Web Z-API desconectada", status.get("lastError"));
+
+        verify(auditRepository).save(auditCaptor.capture());
+        ProspectingAudit audit = auditCaptor.getValue();
+        assertEquals("Erro", audit.getStatus());
+        assertEquals("Erro: Instância Web Z-API desconectada", audit.getLog());
     }
 }

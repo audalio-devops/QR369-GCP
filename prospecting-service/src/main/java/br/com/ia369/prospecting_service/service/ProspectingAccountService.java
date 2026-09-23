@@ -19,7 +19,9 @@ import java.time.DayOfWeek;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -187,6 +189,34 @@ public class ProspectingAccountService {
     }
 
     /**
+     * Executa o monitoramento de status da prospecção e confirma a conexão com a instância Web da Z-API.
+     * Grava auditoria de monitoramento ou erro se desconectada.
+     *
+     * @return mapa com running, zapiConnected e lastError
+     */
+    public Map<String, Object> verificarStatusEMonitorar() {
+        boolean running = isRunning();
+        boolean zApiConnected = zApiClient.isConnected();
+
+        if (!zApiConnected) {
+            String msgErroZApi = "Erro: Instância Web Z-API desconectada";
+            this.lastError = msgErroZApi;
+            registrarAuditoria("Erro", msgErroZApi, null);
+        } else {
+            if ("Erro: Instância Web Z-API desconectada".equals(this.lastError)) {
+                this.lastError = null;
+            }
+            registrarAuditMonitoramento(running);
+        }
+
+        Map<String, Object> statusMap = new HashMap<>();
+        statusMap.put("running", running);
+        statusMap.put("zapiConnected", zApiConnected);
+        statusMap.put("lastError", this.lastError);
+        return statusMap;
+    }
+
+    /**
      * Registra auditoria para o evento de monitoramento (GET
      * /prospecting-account/status).
      */
@@ -248,7 +278,7 @@ public class ProspectingAccountService {
         registrarAuditoria("Funcionando", msgProcessando, lead.getCnpj());
 
         PhoneValidationService.ResultadoValidacaoTelefone resultadoTelefone = phoneValidationService.validarTelefone(
-                lead.getTelefone1(), lead.getTelefone2());
+                lead.getTelefone1(), lead.getTelefone2(), () -> registrarAuditMonitoramento(true));
 
         if (resultadoTelefone.jaContactado()) {
             lead.setStatus(STATUS_NUMERO_JA_CONTACTADO);

@@ -33,7 +33,8 @@ const PanelProspeccaoContadores = ({ isActive }) => {
         }
     };
 
-    const handleVerificarStatus = async (isAutoPoll = false) => {
+    const handleVerificarStatus = async (isSilent = false) => {
+        const silent = isSilent === true;
         try {
             const response = await fetch('/prospecting-account/status');
             const now = new Date();
@@ -53,7 +54,7 @@ const PanelProspeccaoContadores = ({ isActive }) => {
                         title: 'Erro na Prospecção',
                         text: data.lastError
                     });
-                } else if (!isAutoPoll) {
+                } else if (!silent) {
                     pushToast({
                         type: 'info',
                         title: 'Status verificado',
@@ -68,7 +69,7 @@ const PanelProspeccaoContadores = ({ isActive }) => {
                 ...prev,
                 message: 'Erro ao obter status do serviço.'
             }));
-            if (!isAutoPoll) {
+            if (!silent) {
                 pushToast({
                     type: 'error',
                     title: 'Falha ao verificar status',
@@ -102,7 +103,7 @@ const PanelProspeccaoContadores = ({ isActive }) => {
         } catch (err) {
             pushToast({ type: 'error', title: 'Falha ao conectar ao serviço', text: err.message });
         } finally {
-            handleVerificarStatus();
+            handleVerificarStatus(true);
         }
     };
 
@@ -127,27 +128,15 @@ const PanelProspeccaoContadores = ({ isActive }) => {
         } catch (err) {
             pushToast({ type: 'error', title: 'Falha ao enviar sinal de parada', text: err.message });
         } finally {
-            handleVerificarStatus();
+            handleVerificarStatus(true);
         }
     };
 
     useEffect(() => {
         if (isActive) {
-            handleVerificarStatus();
+            handleVerificarStatus(true);
         }
     }, [isActive]);
-
-    useEffect(() => {
-        let timer;
-        if (isActive && statusInfo.isRunning) {
-            timer = setInterval(() => {
-                handleVerificarStatus(true);
-            }, 3000);
-        }
-        return () => {
-            if (timer) clearInterval(timer);
-        };
-    }, [isActive, statusInfo.isRunning]);
 
     const formatDataEvento = (isoString) => {
         if (!isoString) return '-';
@@ -198,7 +187,7 @@ const PanelProspeccaoContadores = ({ isActive }) => {
                         <button
                             className="btn-prospect btn-status"
                             id="btn-status-prospeccao-contadores"
-                            onClick={handleVerificarStatus}
+                            onClick={() => handleVerificarStatus(false)}
                         >
                             🔍 Verificar Status
                         </button>

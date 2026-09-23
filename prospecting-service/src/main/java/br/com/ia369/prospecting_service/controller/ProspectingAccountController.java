@@ -64,18 +64,13 @@ public class ProspectingAccountController {
     }
 
     /**
-     * Retorna o status atual de execução.
+     * Retorna o status atual de execução e confirma a conexão com a Z-API.
      *
-     * @return 200 OK com JSON simples indicando se está em execução
+     * @return 200 OK com JSON indicando se está em execução, se Z-API está conectada e eventual erro
      */
     @GetMapping("/status")
     public ResponseEntity<Map<String, Object>> getStatus() {
-        boolean running = prospectingAccountService.isRunning();
-        prospectingAccountService.registrarAuditMonitoramento(running);
-        Map<String, Object> response = new HashMap<>();
-        response.put("running", running);
-        response.put("lastError", prospectingAccountService.getLastError());
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(prospectingAccountService.verificarStatusEMonitorar());
     }
 
     public static final int DEFAULT_AUDIT_LIMIT = 30;

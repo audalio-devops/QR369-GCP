@@ -192,4 +192,21 @@ class PhoneValidationServiceTest {
         assertTrue(service.isZApiConnected());
         verify(zApiClient).isConnected();
     }
+
+    @Test
+    @DisplayName("Deve executar callback onZApiConnected quando a Z-API estiver conectada antes de phoneExists")
+    void testValidarTelefoneInvocaCallbackOnZApiConnected() {
+        when(zApiClient.isConnected()).thenReturn(true);
+        when(zApiClient.phoneExists("5511999998888")).thenReturn(true);
+
+        Runnable callbackMock = mock(Runnable.class);
+
+        PhoneValidationService.ResultadoValidacaoTelefone resultado =
+                service.validarTelefone("(11) 99999-8888", null, callbackMock);
+
+        assertTrue(resultado.aptoParaContato());
+        verify(zApiClient).isConnected();
+        verify(callbackMock).run();
+        verify(zApiClient).phoneExists("5511999998888");
+    }
 }
