@@ -10,4 +10,6 @@ import java.util.Optional;
 public interface ProspectingProcessedRepository extends JpaRepository<ProspectingProcessed, Long> {
 
     Optional<ProspectingProcessed> findTopByCnpjOrderByCreatedAtDesc(String cnpj);
+
+    boolean existsByTelefoneValido(String telefoneValido);
 }

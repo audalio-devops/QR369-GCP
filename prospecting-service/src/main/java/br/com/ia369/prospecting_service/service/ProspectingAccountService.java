@@ -1,6 +1,7 @@
 package br.com.ia369.prospecting_service.service;
 
 import br.com.ia369.prospecting_service.client.ZApiClient;
+import br.com.ia369.prospecting_service.exception.ZApiDisconnectedException;
 import br.com.ia369.prospecting_service.model.ProspectingAudit;
 import br.com.ia369.prospecting_service.model.ProspectingDataSource;
 import br.com.ia369.prospecting_service.model.ProspectingProcessed;
@@ -13,12 +14,14 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import org.springframework.data.domain.PageRequest;
 import java.time.DayOfWeek;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -42,12 +45,14 @@ public class ProspectingAccountService {
     private static final ZoneId ZONE_SP = ZoneId.of("America/Sao_Paulo");
 
     private static final String STATUS_NENHUM_TELEFONE = "Nenhum telefone válido";
+    private static final String STATUS_NUMERO_JA_CONTACTADO = "Número já contactado";
     private static final String STATUS_CONTATO_INICIAL = "Contato Inicial";
     private static final String AUDIT_OK = "Ok";
     private static final String AUDIT_ERROR = "Error";
 
     private final AtomicBoolean isRunning = new AtomicBoolean(false);
     private final AtomicBoolean shouldStop = new AtomicBoolean(false);
+    private volatile String lastError;
 
     private final ProspectingDataSourceRepository dataSourceRepository;
     private final ProspectingProcessedRepository processedRepository;
@@ -93,6 +98,13 @@ public class ProspectingAccountService {
     }
 
     /**
+     * Retorna a última mensagem de erro registrada na execução.
+     */
+    public String getLastError() {
+        return lastError;
+    }
+
+    /**
      * Sinaliza para a execução corrente que ela deve parar.
      */
     public void stop() {
@@ -112,6 +124,7 @@ public class ProspectingAccountService {
             return;
         }
         shouldStop.set(false);
+        this.lastError = null;
 
         String msgInicioEndpoint = "Prospecção de contadores iniciada via endpoint.";
         String msgInicio = "=== Prospecção de Contadores INICIADA ===";
@@ -121,7 +134,7 @@ public class ProspectingAccountService {
         registrarAuditoria("Iniciado", msgInicio, null);
 
         try {
-            List<ProspectingDataSource> leads = dataSourceRepository.findByStatusIsNull();
+            List<ProspectingDataSource> leads = dataSourceRepository.findByStatusIsNullOrderByPrioridadeAsc();
             String msgLeads = "Leads pendentes encontrados: " + leads.size();
             log.info(msgLeads);
             registrarAuditoria("Iniciado", msgLeads, null);
@@ -150,6 +163,13 @@ public class ProspectingAccountService {
                     if (mensagemEnviada && (i + 1) < leads.size() && !shouldStop.get()) {
                         aguardarIntervalo();
                     }
+                } catch (ZApiDisconnectedException ex) {
+                    String cnpjLead = (lead != null) ? lead.getCnpj() : null;
+                    String msgErroZApi = "Erro: Instância Web Z-API desconectada";
+                    log.error("{} ao processar lead (CNPJ={})", msgErroZApi, cnpjLead);
+                    registrarAuditoria("Erro", msgErroZApi, cnpjLead);
+                    this.lastError = msgErroZApi;
+                    break;
                 } catch (Exception ex) {
                     String cnpjLead = (lead != null) ? lead.getCnpj() : null;
                     String msgErroLead = "Falha ao processar lead (CNPJ=" + cnpjLead + "): " + ex.getMessage()
@@ -169,6 +189,34 @@ public class ProspectingAccountService {
     }
 
     /**
+     * Executa o monitoramento de status da prospecção e confirma a conexão com a instância Web da Z-API.
+     * Grava auditoria de monitoramento ou erro se desconectada.
+     *
+     * @return mapa com running, zapiConnected e lastError
+     */
+    public Map<String, Object> verificarStatusEMonitorar() {
+        boolean running = isRunning();
+        boolean zApiConnected = zApiClient.isConnected();
+
+        if (!zApiConnected) {
+            String msgErroZApi = "Erro: Instância Web Z-API desconectada";
+            this.lastError = msgErroZApi;
+            registrarAuditoria("Erro", msgErroZApi, null);
+        } else {
+            if ("Erro: Instância Web Z-API desconectada".equals(this.lastError)) {
+                this.lastError = null;
+            }
+            registrarAuditMonitoramento(running);
+        }
+
+        Map<String, Object> statusMap = new HashMap<>();
+        statusMap.put("running", running);
+        statusMap.put("zapiConnected", zApiConnected);
+        statusMap.put("lastError", this.lastError);
+        return statusMap;
+    }
+
+    /**
      * Registra auditoria para o evento de monitoramento (GET
      * /prospecting-account/status).
      */
@@ -177,6 +225,16 @@ public class ProspectingAccountService {
         String logMsg = isRunning ? "=== Monitoramento EXECUTADO - EM EXECUÇÃO ==="
                 : "=== Monitoramento EXECUTADO - PARADO ===";
         registrarAuditoria(status, logMsg, null);
+    }
+
+    public static final int DEFAULT_AUDIT_LOGS_LIMIT = 30;
+
+    /**
+     * Retorna os logs de auditoria mais recentes com limite configurável.
+     */
+    public List<ProspectingAudit> getRecentAuditLogs(int limit) {
+        int max = (limit <= 0) ? DEFAULT_AUDIT_LOGS_LIMIT : limit;
+        return auditRepository.findByOrderByDataEventoDesc(PageRequest.of(0, max));
     }
 
     /**
@@ -219,10 +277,20 @@ public class ProspectingAccountService {
         log.info(msgProcessando);
         registrarAuditoria("Funcionando", msgProcessando, lead.getCnpj());
 
-        Optional<String> telefoneValidoOpt = phoneValidationService.validarTelefone(
-                lead.getTelefone1(), lead.getTelefone2());
+        PhoneValidationService.ResultadoValidacaoTelefone resultadoTelefone = phoneValidationService.validarTelefone(
+                lead.getTelefone1(), lead.getTelefone2(), () -> registrarAuditMonitoramento(true));
 
-        if (telefoneValidoOpt.isEmpty()) {
+        if (resultadoTelefone.jaContactado()) {
+            lead.setStatus(STATUS_NUMERO_JA_CONTACTADO);
+            dataSourceRepository.save(lead);
+            String msgJaContactado = "CNPJ " + lead.getCnpj() + ": número já contactado ("
+                    + resultadoTelefone.telefone() + ").";
+            log.info(msgJaContactado);
+            registrarAuditoria("Ignorado", msgJaContactado, lead.getCnpj());
+            return false;
+        }
+
+        if (!resultadoTelefone.aptoParaContato()) {
             // Nenhum telefone válido
             lead.setStatus(STATUS_NENHUM_TELEFONE);
             dataSourceRepository.save(lead);
@@ -232,7 +300,7 @@ public class ProspectingAccountService {
             return false;
         }
 
-        String telefoneValido = telefoneValidoOpt.get();
+        String telefoneValido = resultadoTelefone.telefone();
 
         // Atualizar data source com o telefone válido
         lead.setStatus(telefoneValido);

@@ -27,16 +27,56 @@ public class ZApiClient {
     private final RestClient restClient;
     private final String clientToken;
 
+    @org.springframework.beans.factory.annotation.Autowired
     public ZApiClient(
             @Value("${zapi.base-url}") String baseUrl,
             @Value("${zapi.instance}") String instance,
             @Value("${zapi.token}") String token,
-            @Value("${zapi.client-token}") String clientToken) {
+            @Value("${zapi.client-token}") String clientToken,
+            RestClient.Builder restClientBuilder) {
 
         this.clientToken = clientToken;
-        this.restClient = RestClient.builder()
+        this.restClient = restClientBuilder
                 .baseUrl(baseUrl + "/instances/" + instance + "/token/" + token)
                 .build();
+    }
+
+    public ZApiClient(
+            String baseUrl,
+            String instance,
+            String token,
+            String clientToken) {
+        this(baseUrl, instance, token, clientToken, RestClient.builder());
+    }
+
+    /**
+     * Verifica se a instância da Z-API está conectada ao WhatsApp.
+     * Endpoint: GET /status
+     * Header obrigatório: Client-Token
+     *
+     * @return true se "connected" for true, false caso contrário ou em caso de erro
+     */
+    public boolean isConnected() {
+        log.info("Verificando status de conexão da Z-API...");
+        try {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> response = restClient.get()
+                    .uri("/status")
+                    .header("Client-Token", clientToken)
+                    .retrieve()
+                    .body(Map.class);
+
+            if (response != null && response.containsKey("connected")) {
+                boolean connected = Boolean.TRUE.equals(response.get("connected"));
+                log.info("Status de conexão Z-API: connected = {}", connected);
+                return connected;
+            }
+            log.warn("Resposta inesperada da Z-API para verificação de status: {}", response);
+            return false;
+        } catch (Exception ex) {
+            log.error("Erro ao verificar status de conexão da Z-API: {}", ex.getMessage(), ex);
+            return false;
+        }
     }
 
     /**

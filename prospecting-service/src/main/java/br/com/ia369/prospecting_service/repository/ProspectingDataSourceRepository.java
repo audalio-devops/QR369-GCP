@@ -10,7 +10,15 @@ import java.util.List;
 public interface ProspectingDataSourceRepository extends JpaRepository<ProspectingDataSource, Long> {
 
     /**
-     * Retorna todos os leads que ainda não foram processados (status nulo).
+     * Retorna todos os leads que ainda não foram processados (status nulo),
+     * ordenados por prioridade ascendente.
      */
+    List<ProspectingDataSource> findByStatusIsNullOrderByPrioridadeAsc();
+
+    /**
+     * Retorna todos os leads que ainda não foram processados (status nulo).
+     * @deprecated Utilizar {@link #findByStatusIsNullOrderByPrioridadeAsc()} para garantir ordenação por prioridade.
+     */
+    @Deprecated
     List<ProspectingDataSource> findByStatusIsNull();
 }

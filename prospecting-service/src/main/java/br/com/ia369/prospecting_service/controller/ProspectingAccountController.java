@@ -7,7 +7,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import br.com.ia369.prospecting_service.model.ProspectingAudit;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Controller REST para o endpoint de prospecção de contadores.
@@ -62,24 +64,26 @@ public class ProspectingAccountController {
     }
 
     /**
-     * Retorna o status atual de execução.
+     * Retorna o status atual de execução e confirma a conexão com a Z-API.
      *
-     * @return 200 OK com JSON simples indicando se está em execução
+     * @return 200 OK com JSON indicando se está em execução, se Z-API está conectada e eventual erro
      */
     @GetMapping("/status")
-    public ResponseEntity<String> getStatus() {
-        boolean running = prospectingAccountService.isRunning();
-        prospectingAccountService.registrarAuditMonitoramento(running);
-        return ResponseEntity.ok("{\"running\": " + running + "}");
+    public ResponseEntity<Map<String, Object>> getStatus() {
+        return ResponseEntity.ok(prospectingAccountService.verificarStatusEMonitorar());
     }
 
+    public static final int DEFAULT_AUDIT_LIMIT = 30;
+
     /**
-     * Retorna os 10 logs mais recentes da auditoria.
+     * Retorna os logs mais recentes da auditoria.
      *
-     * @return 200 OK com a lista dos 10 últimos registros
+     * @param limit quantidade máxima de registros a retornar (padrão: 30)
+     * @return 200 OK com a lista dos registros
      */
     @GetMapping("/audit")
-    public ResponseEntity<List<ProspectingAudit>> getRecentAuditLogs() {
-        return ResponseEntity.ok(prospectingAccountService.getTop10AuditLogs());
+    public ResponseEntity<List<ProspectingAudit>> getRecentAuditLogs(
+            @RequestParam(name = "limit", defaultValue = "30") int limit) {
+        return ResponseEntity.ok(prospectingAccountService.getRecentAuditLogs(limit));
     }
 }

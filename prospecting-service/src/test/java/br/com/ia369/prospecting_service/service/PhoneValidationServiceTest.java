@@ -1,6 +1,8 @@
 package br.com.ia369.prospecting_service.service;
 
 import br.com.ia369.prospecting_service.client.ZApiClient;
+import br.com.ia369.prospecting_service.exception.ZApiDisconnectedException;
+import br.com.ia369.prospecting_service.repository.ProspectingProcessedRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -9,8 +11,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -23,11 +23,14 @@ class PhoneValidationServiceTest {
     @Mock
     private ZApiClient zApiClient;
 
+    @Mock
+    private ProspectingProcessedRepository processedRepository;
+
     private PhoneValidationService service;
 
     @BeforeEach
     void setUp() {
-        service = new PhoneValidationService(zApiClient);
+        service = new PhoneValidationService(zApiClient, processedRepository);
     }
 
     @Test
@@ -95,14 +98,46 @@ class PhoneValidationServiceTest {
     }
 
     @Test
+    @DisplayName("Deve lançar ZApiDisconnectedException quando Z-API estiver desconectada no telefone1")
+    void testValidarTelefoneLancaZApiDisconnectedExceptionTel1() {
+        when(zApiClient.isConnected()).thenReturn(false);
+
+        ZApiDisconnectedException ex = assertThrows(ZApiDisconnectedException.class, () ->
+                service.validarTelefone("(11) 99999-8888", "(11) 3333-4444")
+        );
+
+        assertEquals("Erro: Instância Web Z-API desconectada", ex.getMessage());
+        verify(zApiClient).isConnected();
+        verify(zApiClient, never()).phoneExists(anyString());
+    }
+
+    @Test
+    @DisplayName("Deve lançar ZApiDisconnectedException antes de validar telefone2 se telefone1 for inválido")
+    void testValidarTelefoneLancaZApiDisconnectedExceptionTel2() {
+        when(zApiClient.isConnected()).thenReturn(false);
+
+        // telefone1 inválido no formato ("11111111"), telefone2 celular válido
+        ZApiDisconnectedException ex = assertThrows(ZApiDisconnectedException.class, () ->
+                service.validarTelefone("11111111", "11999998888")
+        );
+
+        assertEquals("Erro: Instância Web Z-API desconectada", ex.getMessage());
+        verify(zApiClient).isConnected();
+        verify(zApiClient, never()).phoneExists(anyString());
+    }
+
+    @Test
     @DisplayName("Deve retornar telefone1 se for válido no BR e existir no WhatsApp")
     void testValidarTelefoneSucessoTel1() {
+        when(zApiClient.isConnected()).thenReturn(true);
         when(zApiClient.phoneExists("5511999998888")).thenReturn(true);
 
-        Optional<String> resultado = service.validarTelefone("(11) 99999-8888", "(11) 3333-4444");
+        PhoneValidationService.ResultadoValidacaoTelefone resultado = service.validarTelefone("(11) 99999-8888", "(11) 3333-4444");
 
-        assertTrue(resultado.isPresent());
-        assertEquals("5511999998888", resultado.get());
+        assertTrue(resultado.aptoParaContato());
+        assertEquals("5511999998888", resultado.telefone());
+        verify(zApiClient).isConnected();
+        verify(processedRepository).existsByTelefoneValido("5511999998888");
         verify(zApiClient).phoneExists("5511999998888");
         verify(zApiClient, never()).phoneExists("551133334444");
     }
@@ -110,24 +145,68 @@ class PhoneValidationServiceTest {
     @Test
     @DisplayName("Deve pular chamada à Z-API para telefone1 inválido e validar telefone2")
     void testValidarTelefonePulandoTel1Invalido() {
+        when(zApiClient.isConnected()).thenReturn(true);
         when(zApiClient.phoneExists("5511999998888")).thenReturn(true);
 
         // telefone1 é um número sem DDD válido ("11111111"), telefone2 é celular válido
-        Optional<String> resultado = service.validarTelefone("11111111", "11999998888");
+        PhoneValidationService.ResultadoValidacaoTelefone resultado = service.validarTelefone("11111111", "11999998888");
 
-        assertTrue(resultado.isPresent());
-        assertEquals("5511999998888", resultado.get());
+        assertTrue(resultado.aptoParaContato());
+        assertEquals("5511999998888", resultado.telefone());
+        verify(zApiClient).isConnected();
         // Garante que não chamou a Z-API para o número1 inválido
         verify(zApiClient, never()).phoneExists(argThat(s -> s.contains("11111111")));
         verify(zApiClient).phoneExists("5511999998888");
     }
 
     @Test
-    @DisplayName("Deve retornar Optional.empty se ambos os telefones forem inválidos no formato BR")
+    @DisplayName("Deve informar ausência de telefone válido se ambos forem inválidos no formato BR")
     void testValidarTelefoneAmbosInvalidos() {
-        Optional<String> resultado = service.validarTelefone("1234", "00000000");
+        PhoneValidationService.ResultadoValidacaoTelefone resultado = service.validarTelefone("1234", "00000000");
 
-        assertFalse(resultado.isPresent());
+        assertEquals(PhoneValidationService.ResultadoValidacaoTelefone.Status.NENHUM_TELEFONE_VALIDO,
+                resultado.status());
+        verify(zApiClient, never()).isConnected();
         verify(zApiClient, never()).phoneExists(anyString());
+    }
+
+    @Test
+    @DisplayName("Deve informar explicitamente quando o telefone válido já foi contactado")
+    void testValidarTelefoneJaContactado() {
+        when(processedRepository.existsByTelefoneValido("5511999998888")).thenReturn(true);
+
+        PhoneValidationService.ResultadoValidacaoTelefone resultado =
+                service.validarTelefone("(11) 99999-8888", "(11) 3333-4444");
+
+        assertTrue(resultado.jaContactado());
+        assertEquals("5511999998888", resultado.telefone());
+        verify(processedRepository).existsByTelefoneValido("5511999998888");
+        verify(zApiClient, never()).isConnected();
+        verify(zApiClient, never()).phoneExists(anyString());
+    }
+
+    @Test
+    @DisplayName("Deve delegar isZApiConnected diretamente para o cliente Z-API")
+    void testIsZApiConnected() {
+        when(zApiClient.isConnected()).thenReturn(true);
+        assertTrue(service.isZApiConnected());
+        verify(zApiClient).isConnected();
+    }
+
+    @Test
+    @DisplayName("Deve executar callback onZApiConnected quando a Z-API estiver conectada antes de phoneExists")
+    void testValidarTelefoneInvocaCallbackOnZApiConnected() {
+        when(zApiClient.isConnected()).thenReturn(true);
+        when(zApiClient.phoneExists("5511999998888")).thenReturn(true);
+
+        Runnable callbackMock = mock(Runnable.class);
+
+        PhoneValidationService.ResultadoValidacaoTelefone resultado =
+                service.validarTelefone("(11) 99999-8888", null, callbackMock);
+
+        assertTrue(resultado.aptoParaContato());
+        verify(zApiClient).isConnected();
+        verify(callbackMock).run();
+        verify(zApiClient).phoneExists("5511999998888");
     }
 }

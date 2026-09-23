@@ -1139,6 +1139,67 @@ body.body-main {
     margin-top: 0.5rem;
 }
 
+.audit-table-container {
+    max-height: 460px;
+    overflow-y: auto;
+    overflow-x: auto;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+}
+
+.audit-table-container::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.audit-table-container::-webkit-scrollbar-track {
+    background: var(--color-bg);
+    border-radius: var(--radius);
+}
+
+.audit-table-container::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: var(--radius);
+}
+
+.audit-table-container::-webkit-scrollbar-thumb:hover {
+    background: var(--color-text-muted);
+}
+
+.audit-table-container thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background-color: var(--color-bg);
+}
+
+#audit-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+#audit-table th,
+#audit-table td {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--color-border);
+}
+
+#audit-table th {
+    font-weight: 600;
+    color: var(--color-bordeaux);
+    background-color: var(--color-bg);
+}
+
+#audit-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+#audit-table tbody tr:hover {
+    background-color: #fdf8f3;
+}
+
 .audit-section-header {
     display: flex;
     justify-content: space-between;
