@@ -9,6 +9,7 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - ASSEMBLYAI_API_KEY=${ASSEMBLYAI_API_KEY}
     depends_on:
       - db
       - redis

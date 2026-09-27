@@ -39,6 +39,7 @@ services:
       ZAPI_INSTANCE_ID: ${ZAPI_INSTANCE_ID}
       ZAPI_TOKEN: ${ZAPI_TOKEN}
       ZAPI_CLIENT_TOKEN: ${ZAPI_CLIENT_TOKEN}
+      ASSEMBLYAI_API_KEY: ${ASSEMBLYAI_API_KEY}
     depends_on:
       db:
         condition: service_healthy

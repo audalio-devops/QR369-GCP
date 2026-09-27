@@ -61,10 +61,25 @@ Após a implementação, o `README.md` que criei precisará ser atualizado para 
 
 - **Ação:** Modificar a seção "Fluxo de Funcionamento" no `docs/README.md` para descrever o novo processo baseado em WhatsApp e webhooks, detalhando a interação entre o cliente, a Z-API e o `virtual-assistant`.
 
+#### **Passo 6: Suporte a Mensagens de Áudio com Transcrição (AssemblyAI)**
+
+O serviço foi expandido para receber áudios gravados no WhatsApp (`.ogg` / Opus) além de mensagens de texto tradicionais.
+
+- **Componentes:**
+  - `AssemblyAiConfig.java` e `AssemblyAiProperties.java`: Configuram o cliente AssemblyAI via variável `ASSEMBLYAI_API_KEY`.
+  - `AudioTranscriptionService.java`: Efetua o download do áudio temporário e executa a transcrição com resiliência:
+    - **Tentativa 1**: Executa a transcrição. Se obtiver sucesso, retorna o texto.
+    - **Tentativa 2 (Retry)**: Se a primeira falhar, aguarda 10 segundos e tenta novamente.
+    - Se a segunda tentativa falhar, retorna vazio.
+  - `WhatsAppMessageProcessorService.java`: Processa as mensagens de forma assíncrona desacoplada do webhook HTTP:
+    - Se for texto: envia ao `ChatService` e responde ao WhatsApp.
+    - Se for áudio: transcreve o áudio. Caso a transcrição falhe após as duas tentativas, envia a mensagem amigável: *"Não foi possível compreender o áudio enviado. Por favor, tente enviar um novo áudio ou envie sua mensagem por texto."*. Havendo sucesso, envia o texto transcrito ao `ChatService` e responde em texto ao WhatsApp.
+    - Limpeza garantida de arquivos `.ogg` temporários em disco.
+
 ### **Resumo do Plano de Ação:**
 
-1.  **Configurar:** Adicionar propriedades da Z-API em `application.properties`.
-2.  **Receber:** Criar um `WebhookController` com DTOs para aceitar as chamadas da Z-API.
-3.  **Responder:** Criar um `ZApiClientService` para encapsular o envio de mensagens para a Z-API.
-4.  **Orquestrar:** Ajustar o serviço de chat para, após processar a mensagem, usar o `ZApiClientService` para enviar a resposta.
-5.  **Documentar:** Atualizar o `README.md` com o novo fluxo.
+1.  **Configurar:** Adicionar propriedades da Z-API e AssemblyAI em `application.yml`.
+2.  **Receber:** `WhatsAppWebhookController` aceita chamadas da Z-API (texto e áudio) e responde HTTP 200 de imediato.
+3.  **Processar e Transcrever:** `WhatsAppMessageProcessorService` e `AudioTranscriptionService` tratam texto e áudio com retry de 10s.
+4.  **Responder:** `ZApiClientService` encapsula o envio de mensagens em texto para o cliente.
+5.  **Documentar:** Documentação atualizada com as variáveis de ambiente necessárias (`ASSEMBLYAI_API_KEY`).

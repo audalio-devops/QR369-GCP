@@ -45,20 +45,22 @@ public class WebhookProtectionService {
             return false;
         }
 
-        // 3. Validar se o payload possui texto válido
-        if (payload.phone() == null || payload.messageData() == null || payload.messageData().message() == null
-                || payload.messageData().message().isBlank()) {
-            logger.debug("⏩ [IGNORE] Mensagem descartada: payload sem texto ou telefone");
+        // 3. Validar se o payload possui telefone e conteúdo válido (texto ou áudio)
+        if (payload.phone() == null || payload.phone().isBlank() || (!payload.isText() && !payload.isAudio())) {
+            logger.debug("⏩ [IGNORE] Mensagem descartada: payload sem telefone ou sem conteúdo válido (texto/áudio)");
             return false;
         }
 
         long now = System.currentTimeMillis();
 
-        // 4. Deduplicação por messageId (ou por hash telefone + texto se messageId for
-        // nulo)
+        // 4. Deduplicação por messageId (ou por hash telefone + conteúdo se messageId for nulo)
+        String contentHash = payload.isText()
+                ? String.valueOf(payload.messageData().message().hashCode())
+                : String.valueOf(payload.audioData().audioUrl().hashCode());
+
         String dedupKey = payload.messageId() != null && !payload.messageId().isBlank()
                 ? payload.messageId()
-                : payload.phone() + ":" + payload.messageData().message().hashCode();
+                : payload.phone() + ":" + contentHash;
 
         cleanOldDedupKeys(now);
 
