@@ -275,14 +275,28 @@ public class ChatClientConfig {
                         ChatMemory chatMemory,
                         VectorStore vectorStore,
                         CNPJTools feriasTools,
-                        @Value("classpath:/prompts/context-prompt.st") Resource qaPromptResource) {
+                        @Value("${app.prompt.context-resource:classpath:/prompts/context-prompt.st}") Resource qaPromptResource,
+                        @Value("${app.prompt.system-resource:}") Resource systemPromptResource) {
+
+                String systemPrompt = SYSTEM_PROMPT;
+                if (systemPromptResource != null && systemPromptResource.exists()) {
+                        try {
+                                systemPrompt = systemPromptResource.getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+                                log.info("✅ System Prompt customizado carregado com sucesso de: {}", systemPromptResource.getDescription());
+                        } catch (java.io.IOException e) {
+                                log.error("⚠️ Falha ao carregar system prompt customizado de {}: {}. Usando padrão.",
+                                                systemPromptResource.getDescription(), e.getMessage());
+                        }
+                }
+
+                log.info("ℹ️ Context Prompt configurado a partir de: {}", qaPromptResource.getDescription());
 
                 PromptTemplate qaPromptTemplate = PromptTemplate.builder()
                                 .resource(qaPromptResource)
                                 .build();
 
                 return builder
-                                .defaultSystem(SYSTEM_PROMPT)
+                                .defaultSystem(systemPrompt)
                                 .defaultTools(feriasTools)
                                 .defaultAdvisors(
                                                 MessageChatMemoryAdvisor.builder(chatMemory).build(),

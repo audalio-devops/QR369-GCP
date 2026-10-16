@@ -63,8 +63,12 @@ public class WhatsAppMessageProcessorService {
             if (userMessage != null && !userMessage.isBlank()) {
                 String conversationId = phone;
                 String response = chatService.chat(userMessage, conversationId);
-                zApiClientService.sendMessage(phone, response);
-                logger.info("✅ [phone={}] Resposta do assistente enviada com sucesso.", phone);
+                if (response != null && response.contains("[NAO_RESPONDER]")) {
+                    logger.info("🔇 [phone={}] Resposta contém '[NAO_RESPONDER]'. Encerramento em silêncio acionado (sem disparo ao WhatsApp).", phone);
+                } else {
+                    zApiClientService.sendMessage(phone, response);
+                    logger.info("✅ [phone={}] Resposta do assistente enviada com sucesso.", phone);
+                }
             }
 
         } catch (Exception e) {

@@ -27,7 +27,9 @@ prospecting:
     min: 5
     max: 22
   message:
-    count: 5
+    count: ${PROSPECTING_MESSAGE_COUNT:5}
+    path-pattern: ${PROSPECTING_MESSAGE_PATH_PATTERN:messages/msg_contador_{X}.txt}
+  segmento: ${PROSPECTING_SEGMENTO:CONTADORES}
 
 brasilapi:
   base-url: "https://brasilapi.com.br"

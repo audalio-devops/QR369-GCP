@@ -24,21 +24,25 @@ public class MessageService {
     private static final Logger log = LoggerFactory.getLogger(MessageService.class);
 
     private final int messageCount;
+    private final String messagePathPattern;
     private final Random random = new Random();
 
-    public MessageService(@Value("${prospecting.message.count:5}") int messageCount) {
+    public MessageService(
+            @Value("${prospecting.message.count:5}") int messageCount,
+            @Value("${prospecting.message.path-pattern:messages/msg_contador_{X}.txt}") String messagePathPattern) {
         this.messageCount = messageCount;
+        this.messagePathPattern = messagePathPattern;
     }
 
     /**
-     * Sorteia uma mensagem aleatória dentre as disponíveis para contadores.
+     * Sorteia uma mensagem aleatória dentre as disponíveis para o segmento configurado.
      *
      * @return conteúdo da mensagem sorteada
      * @throws RuntimeException se o arquivo não puder ser lido
      */
     public String sortearMensagem() {
         int x = random.nextInt(messageCount) + 1; // 1 a messageCount
-        String caminho = "messages/msg_contador_" + x + ".txt";
+        String caminho = messagePathPattern.replace("{X}", String.valueOf(x));
         log.info("Mensagem sorteada: {} (arquivo: {})", x, caminho);
 
         try {

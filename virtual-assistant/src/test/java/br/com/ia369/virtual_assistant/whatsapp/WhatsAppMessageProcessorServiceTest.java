@@ -117,4 +117,28 @@ class WhatsAppMessageProcessorServiceTest {
                 eq(WhatsAppMessageProcessorService.AUDIO_ERROR_FALLBACK_MESSAGE)
         );
     }
+
+    @Test
+    void shouldNotSendMessageWhenResponseContainsNaoResponder() {
+        String phone = "5511999999999";
+        String userText = "Obrigado, tchau!";
+        String botResponse = "[NAO_RESPONDER]";
+
+        when(chatService.chat(userText, phone)).thenReturn(botResponse);
+
+        var payload = new ZApiWebhookPayload(
+                phone,
+                false,
+                "msg-2",
+                false,
+                "RECEIVED",
+                new ZApiWebhookPayload.MessageData(userText),
+                null
+        );
+
+        processorService.processPayloadAsync(payload);
+
+        verify(chatService, times(1)).chat(userText, phone);
+        verify(zApiClientService, never()).sendMessage(anyString(), anyString());
+    }
 }
