@@ -63,6 +63,19 @@ public class DatabaseAuditMigration implements CommandLineRunner {
                             "    END IF; " +
                             "END $$;");
 
+            // 4. Garantir coluna segmento em prospecting_data_source
+            jdbcTemplate.execute(
+                    "DO $$ " +
+                            "BEGIN " +
+                            "    IF NOT EXISTS (" +
+                            "        SELECT 1 FROM information_schema.columns " +
+                            "        WHERE table_name = 'prospecting_data_source' AND column_name = 'segmento'" +
+                            "    ) THEN " +
+                            "        ALTER TABLE prospecting_data_source ADD COLUMN segmento VARCHAR(50); " +
+                            "        CREATE INDEX IF NOT EXISTS idx_datasource_segmento ON prospecting_data_source (segmento); " +
+                            "    END IF; " +
+                            "END $$;");
+
             log.info("Ajuste de schema em prospecting_audit concluído com sucesso.");
         } catch (Exception ex) {
             log.warn("Aviso na verificação de schema do prospecting_audit: {}", ex.getMessage());
