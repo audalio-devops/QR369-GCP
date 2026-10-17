@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ConfirmationDialog, useConfirmation, useToasts, ToastStack } from '../Toast';
 
 // Quantidade máxima de registros de auditoria exibidos na tabela
-const AUDIT_LOGS_LIMIT = 30;
+const AUDIT_LOGS_LIMIT = 50;
 
 const PanelProspeccaoContadores = ({
     isActive,
@@ -177,7 +177,7 @@ const PanelProspeccaoContadores = ({
     };
 
     return (
-        <div className={`panel ${isActive ? 'active' : ''}`} id={`panel-prospeccao-${assistantId}`}>
+        <div className={`panel panel-prospeccao ${isActive ? 'active' : ''}`} id={`panel-prospeccao-${assistantId}`}>
             <ToastStack toasts={toasts} onDismiss={dismissToast} />
             <ConfirmationDialog confirmation={confirmation} onConfirm={confirmAction} onCancel={cancelConfirmation} />
             <div className="prospeccao-card">
@@ -261,7 +261,7 @@ const PanelProspeccaoContadores = ({
                     </div>
 
                     <div className="prospeccao-table-container audit-table-container">
-                        <table id={`audit-table-${assistantId}`}>
+                        <table id={`audit-table-${assistantId}`} className="audit-table">
                             <thead>
                                 <tr>
                                     <th>Data / Hora</th>
