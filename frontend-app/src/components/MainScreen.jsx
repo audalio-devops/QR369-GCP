@@ -16,8 +16,8 @@ const PanelWip = ({ title, icon, isActive }) => (
 );
 
 function MainScreen({ onLogout }) {
-    const [activePanel, setActivePanel] = useState('panel-chat');
-    const [activeTitle, setActiveTitle] = useState('Atendente Virtual');
+    const [activePanel, setActivePanel] = useState('panel-chat-fillipo');
+    const [activeTitle, setActiveTitle] = useState('Atendente Virtual - Fillipo');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     useEffect(() => {
@@ -73,6 +73,9 @@ function MainScreen({ onLogout }) {
         return `${baseClass} ${activePanel === panelId ? 'active' : ''}`;
     };
 
+    const isAtendenteParentActive =
+        activePanel === 'panel-chat-fillipo' || activePanel === 'panel-chat-luiggi';
+
     const isProspeccaoParentActive =
         activePanel === 'panel-prospeccao-contadores' || activePanel === 'panel-prospeccao-contatos';
 
@@ -92,14 +95,37 @@ function MainScreen({ onLogout }) {
                 <nav className="sidebar-nav">
                     <div className="nav-label">Módulos</div>
 
-                    <div
-                        className={getNavItemClass('panel-chat')}
-                        id="nav-chat"
-                        data-panel="panel-chat"
-                        data-title="Atendente Virtual"
-                        onClick={handleNavClick}
-                    >
-                        <span className="nav-icon">💬</span> Atendente Virtual
+                    {/* Grupo de Atendente Virtual com Submenus */}
+                    <div className="nav-group">
+                        <div
+                            className={`nav-item nav-parent ${isAtendenteParentActive ? 'parent-active' : ''}`}
+                            id="nav-atendente"
+                            data-panel="panel-chat-fillipo"
+                            data-title="Atendente Virtual - Fillipo"
+                            onClick={handleNavClick}
+                        >
+                            <span className="nav-icon">💬</span> Atendente Virtual
+                        </div>
+                        <div className="nav-subitems">
+                            <div
+                                className={getNavItemClass('panel-chat-fillipo', true)}
+                                id="nav-chat-fillipo"
+                                data-panel="panel-chat-fillipo"
+                                data-title="Atendente Virtual - Fillipo"
+                                onClick={handleNavClick}
+                            >
+                                <span className="nav-subicon">└</span> Fillipo
+                            </div>
+                            <div
+                                className={getNavItemClass('panel-chat-luiggi', true)}
+                                id="nav-chat-luiggi"
+                                data-panel="panel-chat-luiggi"
+                                data-title="Atendente Virtual - Luiggi"
+                                onClick={handleNavClick}
+                            >
+                                <span className="nav-subicon">└</span> Luiggi
+                            </div>
+                        </div>
                     </div>
 
                     {/* Grupo de Prospecção com Submenus */}
@@ -108,7 +134,7 @@ function MainScreen({ onLogout }) {
                             className={`nav-item nav-parent ${isProspeccaoParentActive ? 'parent-active' : ''}`}
                             id="nav-prospeccao"
                             data-panel="panel-prospeccao-contadores"
-                            data-title="Prospecção de Contadores"
+                            data-title="Prospecção - Atendente Virtual"
                             onClick={handleNavClick}
                         >
                             <span className="nav-icon">🎯</span> Prospecção
@@ -118,10 +144,10 @@ function MainScreen({ onLogout }) {
                                 className={getNavItemClass('panel-prospeccao-contadores', true)}
                                 id="nav-prospeccao-contadores"
                                 data-panel="panel-prospeccao-contadores"
-                                data-title="Prospecção de Contadores"
+                                data-title="Prospecção - Atendente Virtual"
                                 onClick={handleNavClick}
                             >
-                                <span className="nav-subicon">└</span> Contadores
+                                <span className="nav-subicon">└</span> Atendente Virtual
                             </div>
                             <div
                                 className={getNavItemClass('panel-prospeccao-contatos', true)}
@@ -189,7 +215,20 @@ function MainScreen({ onLogout }) {
                     </div>
                 </div>
 
-                <PanelChat isActive={activePanel === 'panel-chat'} />
+                <PanelChat
+                    isActive={activePanel === 'panel-chat-fillipo'}
+                    assistantId="fillipo"
+                    assistantName="Fillipo"
+                    assistantRole="Especialista Comercial & B2B"
+                    endpoint="/chat/stream"
+                />
+                <PanelChat
+                    isActive={activePanel === 'panel-chat-luiggi'}
+                    assistantId="luiggi"
+                    assistantName="Luiggi"
+                    assistantRole="Estrategista de Comércio Exterior"
+                    endpoint="/chat/luiggi/stream"
+                />
                 <PanelProspeccaoContadores isActive={activePanel === 'panel-prospeccao-contadores'} />
                 <PanelProspeccao isActive={activePanel === 'panel-prospeccao-contatos'} />
                 <PanelCnpj isActive={activePanel === 'panel-cnpj'} />

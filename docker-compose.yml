@@ -11,6 +11,8 @@ services:
     environment:
       VITE_VA_API_URL: http://virtual-assistant:8080
       VITE_PS_API_URL: http://prospecting-service:8081
+      VITE_VA_LUIGGI_API_URL: http://virtual-assistant-luiggi:8084
+      VITE_PS_LUIGGI_API_URL: http://prospecting-service-luiggi:8085
     depends_on:
       - virtual-assistant
       - prospecting-service
