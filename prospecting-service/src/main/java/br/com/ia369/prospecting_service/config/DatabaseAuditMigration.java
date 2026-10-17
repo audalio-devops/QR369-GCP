@@ -48,6 +48,21 @@ public class DatabaseAuditMigration implements CommandLineRunner {
                             "    END IF; " +
                             "END $$;");
 
+            // 3. Garantir coluna segmento com default CONTADORES e índices
+            jdbcTemplate.execute(
+                    "DO $$ " +
+                            "BEGIN " +
+                            "    IF NOT EXISTS (" +
+                            "        SELECT 1 FROM information_schema.columns " +
+                            "        WHERE table_name = 'prospecting_audit' AND column_name = 'segmento'" +
+                            "    ) THEN " +
+                            "        ALTER TABLE prospecting_audit ADD COLUMN segmento VARCHAR(50) DEFAULT 'CONTADORES'; " +
+                            "        UPDATE prospecting_audit SET segmento = 'CONTADORES' WHERE segmento IS NULL; " +
+                            "        UPDATE prospecting_audit SET segmento = 'COMEX' WHERE log LIKE '%COMEX%' OR log LIKE '%Comércio Exterior%' OR log LIKE '%Luiggi%'; " +
+                            "        CREATE INDEX IF NOT EXISTS idx_audit_segmento_data_evento ON prospecting_audit (segmento, data_evento DESC); " +
+                            "    END IF; " +
+                            "END $$;");
+
             log.info("Ajuste de schema em prospecting_audit concluído com sucesso.");
         } catch (Exception ex) {
             log.warn("Aviso na verificação de schema do prospecting_audit: {}", ex.getMessage());

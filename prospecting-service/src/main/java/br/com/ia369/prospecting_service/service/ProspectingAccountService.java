@@ -237,7 +237,7 @@ public class ProspectingAccountService {
      */
     public List<ProspectingAudit> getRecentAuditLogs(int limit) {
         int max = (limit <= 0) ? DEFAULT_AUDIT_LOGS_LIMIT : limit;
-        return auditRepository.findByOrderByDataEventoDesc(PageRequest.of(0, max));
+        return auditRepository.findBySegmentoOrderByDataEventoDesc(this.segmento, PageRequest.of(0, max));
     }
 
     /**
@@ -264,6 +264,7 @@ public class ProspectingAccountService {
             audit.setStatus(status);
             audit.setLog(logMessage);
             audit.setCnpj(cnpj);
+            audit.setSegmento(this.segmento);
             audit.setDataEvento(LocalDateTime.now(ZONE_SP));
             auditRepository.save(audit);
         } catch (Exception ex) {
