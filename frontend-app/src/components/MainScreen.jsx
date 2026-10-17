@@ -77,7 +77,9 @@ function MainScreen({ onLogout }) {
         activePanel === 'panel-chat-fillipo' || activePanel === 'panel-chat-luiggi';
 
     const isProspeccaoParentActive =
-        activePanel === 'panel-prospeccao-contadores' || activePanel === 'panel-prospeccao-contatos';
+        activePanel === 'panel-prospeccao-fillipo' ||
+        activePanel === 'panel-prospeccao-luiggi' ||
+        activePanel === 'panel-prospeccao-contatos';
 
     return (
         <div id="main-screen">
@@ -133,21 +135,30 @@ function MainScreen({ onLogout }) {
                         <div
                             className={`nav-item nav-parent ${isProspeccaoParentActive ? 'parent-active' : ''}`}
                             id="nav-prospeccao"
-                            data-panel="panel-prospeccao-contadores"
-                            data-title="Prospecção - Atendente Virtual"
+                            data-panel="panel-prospeccao-fillipo"
+                            data-title="Prospecção - Fillipo"
                             onClick={handleNavClick}
                         >
                             <span className="nav-icon">🎯</span> Prospecção
                         </div>
                         <div className="nav-subitems">
                             <div
-                                className={getNavItemClass('panel-prospeccao-contadores', true)}
-                                id="nav-prospeccao-contadores"
-                                data-panel="panel-prospeccao-contadores"
-                                data-title="Prospecção - Atendente Virtual"
+                                className={getNavItemClass('panel-prospeccao-fillipo', true)}
+                                id="nav-prospeccao-fillipo"
+                                data-panel="panel-prospeccao-fillipo"
+                                data-title="Prospecção - Fillipo"
                                 onClick={handleNavClick}
                             >
-                                <span className="nav-subicon">└</span> Atendente Virtual
+                                <span className="nav-subicon">└</span> Fillipo
+                            </div>
+                            <div
+                                className={getNavItemClass('panel-prospeccao-luiggi', true)}
+                                id="nav-prospeccao-luiggi"
+                                data-panel="panel-prospeccao-luiggi"
+                                data-title="Prospecção - Luiggi"
+                                onClick={handleNavClick}
+                            >
+                                <span className="nav-subicon">└</span> Luiggi
                             </div>
                             <div
                                 className={getNavItemClass('panel-prospeccao-contatos', true)}
@@ -229,7 +240,22 @@ function MainScreen({ onLogout }) {
                     assistantRole="Estrategista de Comércio Exterior"
                     endpoint="/chat/luiggi/stream"
                 />
-                <PanelProspeccaoContadores isActive={activePanel === 'panel-prospeccao-contadores'} />
+                <PanelProspeccaoContadores
+                    isActive={activePanel === 'panel-prospeccao-fillipo'}
+                    assistantId="fillipo"
+                    assistantName="Fillipo"
+                    segmentName="Contadores"
+                    baseEndpoint="/prospecting-account"
+                    icon="🎯"
+                />
+                <PanelProspeccaoContadores
+                    isActive={activePanel === 'panel-prospeccao-luiggi'}
+                    assistantId="luiggi"
+                    assistantName="Luiggi"
+                    segmentName="Comércio Exterior"
+                    baseEndpoint="/prospecting-account/luiggi"
+                    icon="🚢"
+                />
                 <PanelProspeccao isActive={activePanel === 'panel-prospeccao-contatos'} />
                 <PanelCnpj isActive={activePanel === 'panel-cnpj'} />
                 <PanelWip title="Importar Lista" icon="📂" isActive={activePanel === 'panel-importar'} />

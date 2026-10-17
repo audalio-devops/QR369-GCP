@@ -19,6 +19,12 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/chat\/luiggi/, '/chat'),
       },
+      // Redireciona requisições de prospecção do Luiggi (porta 8085)
+      '/prospecting-account/luiggi': {
+        target: PS_LUIGGI_TARGET,
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/prospecting-account\/luiggi/, '/prospecting-account'),
+      },
       // Redireciona requisições para o virtual-assistant Fillipo (porta 8080)
       '/api': {
         target: VA_TARGET,
@@ -32,7 +38,11 @@ export default defineConfig({
         target: VA_TARGET,
         changeOrigin: true,
       },
-      // Redireciona requisições para o prospecting-service (porta 8081)
+      // Redireciona requisições para o prospecting-service Fillipo (porta 8081)
+      '/prospecting-account': {
+        target: PS_TARGET,
+        changeOrigin: true,
+      },
       '/prospecting': {
         target: PS_TARGET,
         changeOrigin: true,
