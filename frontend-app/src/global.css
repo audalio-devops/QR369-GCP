@@ -642,19 +642,30 @@ body.body-main {
     max-width: 100%;
 }
 
-#chat-input {
+#chat-input,
+#chat-input-fillipo,
+#chat-input-luiggi,
+.chat-input,
+.chat-form input[type="text"] {
     width: 100%;
-    padding: 0.7rem 1rem;
+    min-height: 52px;
+    padding: 0.85rem 1.25rem;
     border: 1.5px solid var(--color-border);
     border-radius: var(--radius);
-    font-size: 0.9rem;
+    font-size: 1.05rem;
+    line-height: 1.5;
     font-family: inherit;
     outline: none;
     transition: border-color var(--transition);
     background: var(--color-white);
+    box-sizing: border-box;
 }
 
-#chat-input:focus {
+#chat-input:focus,
+#chat-input-fillipo:focus,
+#chat-input-luiggi:focus,
+.chat-input:focus,
+.chat-form input[type="text"]:focus {
     border-color: var(--color-bordeaux-light);
 }
 
@@ -663,8 +674,9 @@ body.body-main {
     color: var(--color-white);
     border: none;
     border-radius: var(--radius);
-    padding: 0.7rem 1.3rem;
-    font-size: 0.9rem;
+    padding: 0.85rem 1.5rem;
+    min-height: 52px;
+    font-size: 1rem;
     font-weight: 600;
     font-family: inherit;
     cursor: pointer;
@@ -672,6 +684,7 @@ body.body-main {
     white-space: nowrap;
     align-self: flex-end;
     min-width: 120px;
+    box-sizing: border-box;
 }
 
 .btn-send:hover {

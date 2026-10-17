@@ -204,6 +204,7 @@ const PanelChat = ({
                 <form className="chat-form" id={`chat-form-${assistantId}`} onSubmit={handleSubmit}>
                     <input
                         id={`chat-input-${assistantId}`}
+                        className="chat-input"
                         type="text"
                         placeholder={assistantId === 'luiggi' ? "Ex: Como destravar fluxo de caixa na importação?" : "Qual a sua dúvida?"}
                         autoComplete="off"
