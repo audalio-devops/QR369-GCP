@@ -14,32 +14,47 @@ public class ChatService {
 
     private final ChatClient chatClient;
 
+    @org.springframework.beans.factory.annotation.Value("${app.assistant.id:fillipo}")
+    private String assistantId;
+
     public ChatService(ChatClient chatClient) {
         this.chatClient = chatClient;
     }
 
+    private String resolveConversationId(String rawId) {
+        if (rawId == null || rawId.isBlank()) {
+            return assistantId + ":default";
+        }
+        if (rawId.startsWith(assistantId + ":")) {
+            return rawId;
+        }
+        return assistantId + ":" + rawId;
+    }
+
     public String chat(String message, String conversationId) {
+        String targetConvId = resolveConversationId(conversationId);
         logger.info("[conversationId={}] Iniciando chat (mensagem com {} caracteres)",
-                conversationId, message.length());
+                targetConvId, message.length());
 
         return chatClient.prompt()
                 .user(message)
-                .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, conversationId))
+                .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, targetConvId))
                 .call()
                 .content();
     }
 
     public Flux<String> stream(String message, String conversationId) {
+        String targetConvId = resolveConversationId(conversationId);
         logger.info("[conversationId={}] Iniciando stream de chat (mensagem com {} caracteres)",
-                conversationId, message.length());
+                targetConvId, message.length());
         return chatClient.prompt()
                 .user(message)
-                .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, conversationId))
+                .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, targetConvId))
                 .stream()
                 .content()
                 .doOnComplete(() -> logger.info("[conversationId={}] Stream de chat concluido com sucesso",
-                        conversationId))
+                        targetConvId))
                 .doOnError(error -> logger.error("[conversationId={}] Erro durante o stream de chat: {}",
-                        conversationId, error.getMessage(), error));
+                        targetConvId, error.getMessage(), error));
     }
 }

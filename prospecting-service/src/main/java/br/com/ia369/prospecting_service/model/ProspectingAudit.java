@@ -19,6 +19,9 @@ public class ProspectingAudit {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "segmento", length = 50)
+    private String segmento;
+
     @Column(name = "data_evento", nullable = false)
     private LocalDateTime dataEvento;
 

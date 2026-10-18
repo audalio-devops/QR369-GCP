@@ -101,7 +101,7 @@ class ProspectingAccountServiceTest {
         testLead.setRazaoSocial("TesteControlado1");
         testLead.setTelefone1("11999998888");
 
-        when(dataSourceRepository.findByStatusIsNullOrderByPrioridadeAsc()).thenReturn(List.of(testLead));
+        when(dataSourceRepository.findPendentesPorSegmento(any())).thenReturn(List.of(testLead));
         when(phoneValidationService.validarTelefone(any(), any(), any())).thenReturn(
                 PhoneValidationService.ResultadoValidacaoTelefone.aptoParaContato("5511999998888"));
         when(messageService.sortearMensagem()).thenReturn("Olá Contador");
@@ -130,7 +130,7 @@ class ProspectingAccountServiceTest {
         proximoLead.setRazaoSocial("TesteControladoComWhatsapp");
         proximoLead.setTelefone1("11999991111");
 
-        when(dataSourceRepository.findByStatusIsNullOrderByPrioridadeAsc()).thenReturn(List.of(leadSemWhatsapp, proximoLead));
+        when(dataSourceRepository.findPendentesPorSegmento(any())).thenReturn(List.of(leadSemWhatsapp, proximoLead));
         when(phoneValidationService.validarTelefone(eq("11999990000"), isNull(), any())).thenReturn(
                 PhoneValidationService.ResultadoValidacaoTelefone.nenhumTelefoneValido());
         when(phoneValidationService.validarTelefone(eq("11999991111"), isNull(), any())).thenReturn(
@@ -151,7 +151,7 @@ class ProspectingAccountServiceTest {
         lead.setRazaoSocial("TesteControladoContactado");
         lead.setTelefone1("11999992222");
 
-        when(dataSourceRepository.findByStatusIsNullOrderByPrioridadeAsc()).thenReturn(List.of(lead));
+        when(dataSourceRepository.findPendentesPorSegmento(any())).thenReturn(List.of(lead));
         when(phoneValidationService.validarTelefone(eq("11999992222"), isNull(), any())).thenReturn(
                 PhoneValidationService.ResultadoValidacaoTelefone.jaContactado("55119999992222"));
 
@@ -181,13 +181,13 @@ class ProspectingAccountServiceTest {
         leadPrio2.setTelefone1("11999992222");
         leadPrio2.setPrioridade(2);
 
-        when(dataSourceRepository.findByStatusIsNullOrderByPrioridadeAsc()).thenReturn(List.of(leadPrio1, leadPrio2));
+        when(dataSourceRepository.findPendentesPorSegmento(any())).thenReturn(List.of(leadPrio1, leadPrio2));
         when(phoneValidationService.validarTelefone(any(), any(), any())).thenReturn(
                 PhoneValidationService.ResultadoValidacaoTelefone.nenhumTelefoneValido());
 
         service.startProspecting();
 
-        verify(dataSourceRepository).findByStatusIsNullOrderByPrioridadeAsc();
+        verify(dataSourceRepository).findPendentesPorSegmento(any());
         assertEquals("Nenhum telefone válido", leadPrio1.getStatus());
         assertEquals("Nenhum telefone válido", leadPrio2.getStatus());
     }
@@ -205,7 +205,7 @@ class ProspectingAccountServiceTest {
         lead2.setRazaoSocial("TesteControladoLead2");
         lead2.setTelefone1("11999992222");
 
-        when(dataSourceRepository.findByStatusIsNullOrderByPrioridadeAsc()).thenReturn(List.of(lead1, lead2));
+        when(dataSourceRepository.findPendentesPorSegmento(any())).thenReturn(List.of(lead1, lead2));
         when(phoneValidationService.validarTelefone(eq("11999991111"), isNull(), any()))
                 .thenThrow(new ZApiDisconnectedException("Erro: Instância Web Z-API desconectada"));
 
@@ -241,14 +241,14 @@ class ProspectingAccountServiceTest {
         audit1.setId(1L);
         audit1.setStatus("Iniciado");
 
-        when(auditRepository.findByOrderByDataEventoDesc(org.springframework.data.domain.PageRequest.of(0, 30)))
+        when(auditRepository.findBySegmentoOrderByDataEventoDesc(org.mockito.ArgumentMatchers.eq("CONTADORES"), org.mockito.ArgumentMatchers.eq(org.springframework.data.domain.PageRequest.of(0, 30))))
                 .thenReturn(List.of(audit1));
 
         List<ProspectingAudit> logs = service.getRecentAuditLogs(30);
 
         assertEquals(1, logs.size());
         assertEquals("Iniciado", logs.get(0).getStatus());
-        verify(auditRepository).findByOrderByDataEventoDesc(org.springframework.data.domain.PageRequest.of(0, 30));
+        verify(auditRepository).findBySegmentoOrderByDataEventoDesc(org.mockito.ArgumentMatchers.eq("CONTADORES"), org.mockito.ArgumentMatchers.eq(org.springframework.data.domain.PageRequest.of(0, 30)));
     }
 
     @Test

@@ -11,6 +11,8 @@ services:
     environment:
       VITE_VA_API_URL: http://virtual-assistant:8080
       VITE_PS_API_URL: http://prospecting-service:8081
+      VITE_VA_LUIGGI_API_URL: http://virtual-assistant-luiggi:8084
+      VITE_PS_LUIGGI_API_URL: http://prospecting-service-luiggi:8085
     depends_on:
       - virtual-assistant
       - prospecting-service
@@ -39,6 +41,7 @@ services:
       ZAPI_INSTANCE_ID: ${ZAPI_INSTANCE_ID}
       ZAPI_TOKEN: ${ZAPI_TOKEN}
       ZAPI_CLIENT_TOKEN: ${ZAPI_CLIENT_TOKEN}
+      ASSEMBLYAI_API_KEY: ${ASSEMBLYAI_API_KEY}
     depends_on:
       db:
         condition: service_healthy
@@ -63,6 +66,69 @@ services:
       ZAPI_INSTANCE_ID: ${ZAPI_INSTANCE_ID}
       ZAPI_TOKEN: ${ZAPI_TOKEN}
       ZAPI_CLIENT_TOKEN: ${ZAPI_CLIENT_TOKEN}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Stack Luiggi (Comex) ──────────────────────────────────────────────────
+
+  virtual-assistant-luiggi:
+    image: virtual-assistant:latest
+    build: ./virtual-assistant
+    container_name: virtual-assistant-luiggi-app
+    ports:
+      - "${VA_LUIGGI_SERVER_PORT:-8084}:${VA_LUIGGI_SERVER_PORT:-8084}"
+    environment:
+      VA_SERVER_PORT: ${VA_LUIGGI_SERVER_PORT:-8084}
+      ASSISTANT_ID: luiggi
+      PGVECTOR_TABLE_NAME: vector_store_luiggi
+      APP_PROMPT_CONTEXT_RESOURCE: classpath:/prompts/luiggi/context-prompt.st
+      APP_PROMPT_SYSTEM_RESOURCE: classpath:/prompts/luiggi/system-prompt.st
+      APP_RAG_DEFAULT_DOC_RESOURCE: classpath:/docs/Luiggi_TREINAMENTO_DEFINITIVO_v3.docx
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      SPRING_AI_OLLAMA_BASE_URL: ${SPRING_AI_OLLAMA_BASE_URL}
+      VA_DB_URL: ${VA_DB_URL}
+      VA_DB_USERNAME: ${VA_DB_USERNAME}
+      VA_DB_PASSWORD: ${VA_DB_PASSWORD}
+      VA_REDIS_HOST: ${VA_REDIS_HOST}
+      VA_REDIS_PORT: ${VA_REDIS_PORT}
+      LOGIN_USR: ${LOGIN_USR}
+      LOGIN_PWD: ${LOGIN_PWD}
+      APP_PROSPECTING_BASE_URL: http://prospecting-service-luiggi:8085
+      ZAPI_INSTANCE_ID: ${ZAPI_LUIGGI_INSTANCE_ID:-${ZAPI_INSTANCE_ID}}
+      ZAPI_TOKEN: ${ZAPI_LUIGGI_TOKEN:-${ZAPI_TOKEN}}
+      ZAPI_CLIENT_TOKEN: ${ZAPI_LUIGGI_CLIENT_TOKEN:-${ZAPI_CLIENT_TOKEN}}
+      ASSEMBLYAI_API_KEY: ${ASSEMBLYAI_API_KEY}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+    restart: unless-stopped
+
+  prospecting-service-luiggi:
+    image: prospecting-service:latest
+    build: ./prospecting-service
+    container_name: prospecting-service-luiggi-app
+    ports:
+      - "${PS_LUIGGI_SERVER_PORT:-8085}:${PS_LUIGGI_SERVER_PORT:-8085}"
+    environment:
+      PS_SERVER_PORT: ${PS_LUIGGI_SERVER_PORT:-8085}
+      SPRING_DATASOURCE_URL: ${VA_DB_URL}
+      SPRING_DATASOURCE_USERNAME: ${VA_DB_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${VA_DB_PASSWORD}
+      BRASILAPI_BASE_URL: ${BRASILAPI_BASE_URL:-https://brasilapi.com.br}
+      ZAPI_INSTANCE_ID: ${ZAPI_LUIGGI_INSTANCE_ID:-${ZAPI_INSTANCE_ID}}
+      ZAPI_TOKEN: ${ZAPI_LUIGGI_TOKEN:-${ZAPI_TOKEN}}
+      ZAPI_CLIENT_TOKEN: ${ZAPI_LUIGGI_CLIENT_TOKEN:-${ZAPI_CLIENT_TOKEN}}
+      PROSPECTING_MESSAGE_COUNT: 8
+      PROSPECTING_MESSAGE_PATH_PATTERN: messages/luiggi/msg_luiggi_{X}.txt
+      PROSPECTING_SEGMENTO: COMEX
     depends_on:
       db:
         condition: service_healthy

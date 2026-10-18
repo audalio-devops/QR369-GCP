@@ -73,6 +73,9 @@ public class ProspectingAccountService {
     @Value("${prospecting.interval.max:22}")
     private int intervalMax = 22;
 
+    @Value("${prospecting.segmento:CONTADORES}")
+    private String segmento = "CONTADORES";
+
     private final Random random = new Random();
 
     public ProspectingAccountService(
@@ -126,16 +129,16 @@ public class ProspectingAccountService {
         shouldStop.set(false);
         this.lastError = null;
 
-        String msgInicioEndpoint = "Prospecção de contadores iniciada via endpoint.";
-        String msgInicio = "=== Prospecção de Contadores INICIADA ===";
+        String msgInicioEndpoint = "Prospecção de " + segmento + " iniciada via endpoint.";
+        String msgInicio = "=== Prospecção [" + segmento + "] INICIADA ===";
         log.info(msgInicioEndpoint);
         registrarAuditoria("Iniciado", msgInicioEndpoint, null);
         log.info(msgInicio);
         registrarAuditoria("Iniciado", msgInicio, null);
 
         try {
-            List<ProspectingDataSource> leads = dataSourceRepository.findByStatusIsNullOrderByPrioridadeAsc();
-            String msgLeads = "Leads pendentes encontrados: " + leads.size();
+            List<ProspectingDataSource> leads = dataSourceRepository.findPendentesPorSegmento(segmento);
+            String msgLeads = "Leads pendentes encontrados (" + segmento + "): " + leads.size();
             log.info(msgLeads);
             registrarAuditoria("Iniciado", msgLeads, null);
 
@@ -182,7 +185,7 @@ public class ProspectingAccountService {
         } finally {
             isRunning.set(false);
             shouldStop.set(false);
-            String msgFim = "=== Prospecção de Contadores FINALIZADA ===";
+            String msgFim = "=== Prospecção [" + segmento + "] FINALIZADA ===";
             log.info(msgFim);
             registrarAuditoria("Finalizado", msgFim, null);
         }
@@ -234,7 +237,7 @@ public class ProspectingAccountService {
      */
     public List<ProspectingAudit> getRecentAuditLogs(int limit) {
         int max = (limit <= 0) ? DEFAULT_AUDIT_LOGS_LIMIT : limit;
-        return auditRepository.findByOrderByDataEventoDesc(PageRequest.of(0, max));
+        return auditRepository.findBySegmentoOrderByDataEventoDesc(this.segmento, PageRequest.of(0, max));
     }
 
     /**
@@ -261,6 +264,7 @@ public class ProspectingAccountService {
             audit.setStatus(status);
             audit.setLog(logMessage);
             audit.setCnpj(cnpj);
+            audit.setSegmento(this.segmento);
             audit.setDataEvento(LocalDateTime.now(ZONE_SP));
             auditRepository.save(audit);
         } catch (Exception ex) {

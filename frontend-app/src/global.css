@@ -482,7 +482,10 @@ body.body-main {
 /* =====================================================
    PANEL: ATENDENTE VIRTUAL (CHAT)
    ===================================================== */
-#panel-chat {
+#panel-chat,
+#panel-chat-fillipo,
+#panel-chat-luiggi,
+.panel-chat {
     padding: 1.25rem 1.75rem;
     gap: 1rem;
 }
@@ -510,7 +513,10 @@ body.body-main {
     color: var(--color-white);
 }
 
-#chat-box {
+#chat-box,
+#chat-box-fillipo,
+#chat-box-luiggi,
+.chat-box {
     flex: 1;
     min-height: 300px;
     max-height: 420px;
@@ -636,19 +642,30 @@ body.body-main {
     max-width: 100%;
 }
 
-#chat-input {
+#chat-input,
+#chat-input-fillipo,
+#chat-input-luiggi,
+.chat-input,
+.chat-form input[type="text"] {
     width: 100%;
-    padding: 0.7rem 1rem;
+    min-height: 52px;
+    padding: 0.85rem 1.25rem;
     border: 1.5px solid var(--color-border);
     border-radius: var(--radius);
-    font-size: 0.9rem;
+    font-size: 1.05rem;
+    line-height: 1.5;
     font-family: inherit;
     outline: none;
     transition: border-color var(--transition);
     background: var(--color-white);
+    box-sizing: border-box;
 }
 
-#chat-input:focus {
+#chat-input:focus,
+#chat-input-fillipo:focus,
+#chat-input-luiggi:focus,
+.chat-input:focus,
+.chat-form input[type="text"]:focus {
     border-color: var(--color-bordeaux-light);
 }
 
@@ -657,8 +674,9 @@ body.body-main {
     color: var(--color-white);
     border: none;
     border-radius: var(--radius);
-    padding: 0.7rem 1.3rem;
-    font-size: 0.9rem;
+    padding: 0.85rem 1.5rem;
+    min-height: 52px;
+    font-size: 1rem;
     font-weight: 600;
     font-family: inherit;
     cursor: pointer;
@@ -666,6 +684,7 @@ body.body-main {
     white-space: nowrap;
     align-self: flex-end;
     min-width: 120px;
+    box-sizing: border-box;
 }
 
 .btn-send:hover {
@@ -678,11 +697,17 @@ body.body-main {
 }
 
 @media (max-width: 1023px) {
-    #panel-chat {
+    #panel-chat,
+#panel-chat-fillipo,
+#panel-chat-luiggi,
+.panel-chat {
         padding: 1.5rem 1.25rem;
     }
 
-    #chat-box {
+    #chat-box,
+#chat-box-fillipo,
+#chat-box-luiggi,
+.chat-box {
         max-height: 460px;
         min-height: 360px;
         padding: 1.15rem;
@@ -707,11 +732,17 @@ body.body-main {
 }
 
 @media (min-width: 768px) and (max-width: 1023px) {
-    #panel-chat {
+    #panel-chat,
+#panel-chat-fillipo,
+#panel-chat-luiggi,
+.panel-chat {
         padding: 1.25rem 1.5rem;
     }
 
-    #chat-box {
+    #chat-box,
+#chat-box-fillipo,
+#chat-box-luiggi,
+.chat-box {
         max-height: 380px;
         min-height: 300px;
     }
@@ -841,7 +872,10 @@ body.body-main {
 /* =====================================================
    PANEL: PROSPECÇÃO
    ===================================================== */
-#panel-prospeccao {
+#panel-prospeccao,
+#panel-prospeccao-fillipo,
+#panel-prospeccao-luiggi,
+.panel-prospeccao {
     flex-direction: column;
     gap: 1.25rem;
     padding: 1.75rem;
@@ -1140,30 +1174,33 @@ body.body-main {
 }
 
 .audit-table-container {
-    max-height: 460px;
+    max-height: 380px;
     overflow-y: auto;
     overflow-x: auto;
     border: 1px solid var(--color-border);
     border-radius: var(--radius);
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-gold) rgba(0, 0, 0, 0.06);
+    scrollbar-gutter: stable;
 }
 
 .audit-table-container::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 8px;
+    height: 8px;
 }
 
 .audit-table-container::-webkit-scrollbar-track {
-    background: var(--color-bg);
+    background: rgba(0, 0, 0, 0.04);
     border-radius: var(--radius);
 }
 
 .audit-table-container::-webkit-scrollbar-thumb {
-    background: var(--color-border);
+    background: var(--color-gold);
     border-radius: var(--radius);
 }
 
 .audit-table-container::-webkit-scrollbar-thumb:hover {
-    background: var(--color-text-muted);
+    background: var(--color-gold-muted);
 }
 
 .audit-table-container thead th {
@@ -1173,12 +1210,19 @@ body.body-main {
     background-color: var(--color-bg);
 }
 
-#audit-table {
+.audit-table-container table,
+.audit-table,
+#audit-table,
+[id^="audit-table-"] {
     width: 100%;
     border-collapse: collapse;
     font-size: 0.85rem;
 }
 
+.audit-table-container th,
+.audit-table-container td,
+.audit-table th,
+.audit-table td,
 #audit-table th,
 #audit-table td {
     padding: 0.75rem 1rem;
@@ -1186,16 +1230,22 @@ body.body-main {
     border-bottom: 1px solid var(--color-border);
 }
 
+.audit-table-container th,
+.audit-table th,
 #audit-table th {
     font-weight: 600;
     color: var(--color-bordeaux);
     background-color: var(--color-bg);
 }
 
+.audit-table-container tbody tr:last-child td,
+.audit-table tbody tr:last-child td,
 #audit-table tbody tr:last-child td {
     border-bottom: none;
 }
 
+.audit-table-container tbody tr:hover,
+.audit-table tbody tr:hover,
 #audit-table tbody tr:hover {
     background-color: #fdf8f3;
 }

@@ -13,9 +13,17 @@ public record ZApiWebhookPayload(
 
         @JsonProperty("status") String status,
 
-        @JsonProperty("text") MessageData messageData) {
+        @JsonProperty("text") MessageData messageData,
+
+        @JsonProperty("audio") AudioData audioData) {
+
     public record MessageData(
-            String message) {
+            @JsonProperty("message") String message) {
+    }
+
+    public record AudioData(
+            @JsonProperty("audioUrl") String audioUrl,
+            @JsonProperty("mimeType") String mimeType) {
     }
 
     public boolean isFromMe() {
@@ -24,5 +32,13 @@ public record ZApiWebhookPayload(
 
     public boolean isGroupMessage() {
         return Boolean.TRUE.equals(isGroup);
+    }
+
+    public boolean isText() {
+        return messageData != null && messageData.message() != null && !messageData.message().isBlank();
+    }
+
+    public boolean isAudio() {
+        return audioData != null && audioData.audioUrl() != null && !audioData.audioUrl().isBlank();
     }
 }

@@ -2,9 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { ConfirmationDialog, useConfirmation, useToasts, ToastStack } from '../Toast';
 
 // Quantidade máxima de registros de auditoria exibidos na tabela
-const AUDIT_LOGS_LIMIT = 30;
+const AUDIT_LOGS_LIMIT = 50;
 
-const PanelProspeccaoContadores = ({ isActive }) => {
+const PanelProspeccaoContadores = ({
+    isActive,
+    assistantId = 'fillipo',
+    assistantName = 'Fillipo',
+    segmentName = 'Contadores',
+    baseEndpoint = '/prospecting-account',
+    icon = '🎯'
+}) => {
     const [auditLogs, setAuditLogs] = useState([]);
     const [isLoadingLogs, setIsLoadingLogs] = useState(false);
     const [statusInfo, setStatusInfo] = useState({
@@ -19,7 +26,7 @@ const PanelProspeccaoContadores = ({ isActive }) => {
     const fetchAuditLogs = async () => {
         setIsLoadingLogs(true);
         try {
-            const response = await fetch(`/prospecting-account/audit?limit=${AUDIT_LOGS_LIMIT}`);
+            const response = await fetch(`${baseEndpoint}/audit?limit=${AUDIT_LOGS_LIMIT}`);
             if (response.ok) {
                 const data = await response.json();
                 setAuditLogs(data.slice(0, AUDIT_LOGS_LIMIT));
@@ -36,7 +43,7 @@ const PanelProspeccaoContadores = ({ isActive }) => {
     const handleVerificarStatus = async (isSilent = false) => {
         const silent = isSilent === true;
         try {
-            const response = await fetch('/prospecting-account/status');
+            const response = await fetch(`${baseEndpoint}/status`);
             const now = new Date();
             const formattedTime = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR');
 
@@ -48,6 +55,7 @@ const PanelProspeccaoContadores = ({ isActive }) => {
                     lastError: data.lastError || null,
                     message: data.running ? 'Prospecção em andamento.' : (data.lastError || 'Prospecção parada.')
                 });
+
                 if (data.lastError) {
                     pushToast({
                         type: 'error',
@@ -57,24 +65,34 @@ const PanelProspeccaoContadores = ({ isActive }) => {
                 } else if (!silent) {
                     pushToast({
                         type: 'info',
-                        title: 'Status verificado',
-                        text: `Concluída às ${formattedTime}. Status: ${data.running ? 'EM EXECUÇÃO' : 'PARADO'}`
+                        title: 'Status da Prospecção',
+                        text: data.running ? 'Prospecção está em andamento.' : 'Prospecção está parada.'
                     });
                 }
             } else {
-                throw new Error(`Status HTTP ${response.status}`);
+                const errorMsg = `Serviço respondeu com erro: ${response.status} ${response.statusText}`;
+                setStatusInfo({
+                    checkedAt: formattedTime,
+                    isRunning: false,
+                    lastError: errorMsg,
+                    message: errorMsg
+                });
+                if (!silent) {
+                    pushToast({ type: 'error', title: 'Falha na verificação', text: errorMsg });
+                }
             }
         } catch (err) {
-            setStatusInfo(prev => ({
-                ...prev,
-                message: 'Erro ao obter status do serviço.'
-            }));
+            const now = new Date();
+            const formattedTime = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR');
+            const errorMsg = `Não foi possível conectar ao serviço: ${err.message}`;
+            setStatusInfo({
+                checkedAt: formattedTime,
+                isRunning: false,
+                lastError: errorMsg,
+                message: errorMsg
+            });
             if (!silent) {
-                pushToast({
-                    type: 'error',
-                    title: 'Falha ao verificar status',
-                    text: err.message
-                });
+                pushToast({ type: 'error', title: 'Erro de Conexão', text: errorMsg });
             }
         } finally {
             fetchAuditLogs();
@@ -84,13 +102,13 @@ const PanelProspeccaoContadores = ({ isActive }) => {
     const handleIniciarProspeccao = async () => {
         const confirmed = await confirm({
             type: 'info',
-            title: 'Iniciar prospecção',
-            text: 'Deseja iniciar a prospecção de contadores?'
+            title: `Iniciar prospecção - ${assistantName}`,
+            text: `Deseja iniciar a prospecção de ${segmentName.toLowerCase()} (${assistantName})?`
         });
         if (!confirmed) return;
 
         try {
-            const response = await fetch('/prospecting-account', { method: 'POST' });
+            const response = await fetch(baseEndpoint, { method: 'POST' });
             const messageText = await response.text();
 
             if (response.status === 202) {
@@ -101,7 +119,7 @@ const PanelProspeccaoContadores = ({ isActive }) => {
                 pushToast({ type: 'error', title: `Erro ${response.status}`, text: messageText });
             }
         } catch (err) {
-            pushToast({ type: 'error', title: 'Falha ao conectar ao serviço', text: err.message });
+            pushToast({ type: 'error', title: 'Falha ao iniciar prospecção', text: err.message });
         } finally {
             handleVerificarStatus(true);
         }
@@ -110,14 +128,14 @@ const PanelProspeccaoContadores = ({ isActive }) => {
     const handlePararProspeccao = async () => {
         const confirmed = await confirm({
             type: 'warning',
-            title: 'Parar prospecção',
-            text: 'Deseja solicitar a parada da prospecção de contadores?',
+            title: `Parar prospecção - ${assistantName}`,
+            text: `Deseja solicitar a parada da prospecção de ${segmentName.toLowerCase()} (${assistantName})?`,
             confirmLabel: 'Solicitar parada'
         });
         if (!confirmed) return;
 
         try {
-            const response = await fetch('/prospecting-account', { method: 'DELETE' });
+            const response = await fetch(baseEndpoint, { method: 'DELETE' });
             const messageText = await response.text();
 
             if (response.ok) {
@@ -159,34 +177,34 @@ const PanelProspeccaoContadores = ({ isActive }) => {
     };
 
     return (
-        <div className={`panel ${isActive ? 'active' : ''}`} id="panel-prospeccao-contadores">
+        <div className={`panel panel-prospeccao ${isActive ? 'active' : ''}`} id={`panel-prospeccao-${assistantId}`}>
             <ToastStack toasts={toasts} onDismiss={dismissToast} />
             <ConfirmationDialog confirmation={confirmation} onConfirm={confirmAction} onCancel={cancelConfirmation} />
             <div className="prospeccao-card">
                 <div className="prospeccao-header">
                     <div>
-                        <h3>🎯 Prospecção de Contadores</h3>
-                        <p className="prospeccao-subtitle">Controle de execução e histórico de eventos em tempo real</p>
+                        <h3>{icon} Prospecção — {assistantName}</h3>
+                        <p className="prospeccao-subtitle">Controle de execução e histórico de eventos para {segmentName}</p>
                     </div>
 
                     <div className="prospeccao-actions">
                         <button
                             className="btn-prospect btn-iniciar"
-                            id="btn-iniciar-prospeccao-contadores"
+                            id={`btn-iniciar-prospeccao-${assistantId}`}
                             onClick={handleIniciarProspeccao}
                         >
                             ▶ Iniciar Prospecção
                         </button>
                         <button
                             className="btn-prospect btn-parar"
-                            id="btn-parar-prospeccao-contadores"
+                            id={`btn-parar-prospeccao-${assistantId}`}
                             onClick={handlePararProspeccao}
                         >
                             ⏹ Parar Prospecção
                         </button>
                         <button
                             className="btn-prospect btn-status"
-                            id="btn-status-prospeccao-contadores"
+                            id={`btn-status-prospeccao-${assistantId}`}
                             onClick={() => handleVerificarStatus(false)}
                         >
                             🔍 Verificar Status
@@ -196,7 +214,7 @@ const PanelProspeccaoContadores = ({ isActive }) => {
 
                 {/* Banner de Erro Crítico na tela (ex: Instância Z-API desconectada) */}
                 {statusInfo.lastError && (
-                    <div className="prospeccao-error-box" id="prospeccao-status-error" style={{
+                    <div className="prospeccao-error-box" id={`prospeccao-status-error-${assistantId}`} style={{
                         backgroundColor: 'rgba(239, 68, 68, 0.15)',
                         border: '1px solid rgba(239, 68, 68, 0.4)',
                         borderRadius: '8px',
@@ -243,7 +261,7 @@ const PanelProspeccaoContadores = ({ isActive }) => {
                     </div>
 
                     <div className="prospeccao-table-container audit-table-container">
-                        <table id="audit-table">
+                        <table id={`audit-table-${assistantId}`} className="audit-table">
                             <thead>
                                 <tr>
                                     <th>Data / Hora</th>

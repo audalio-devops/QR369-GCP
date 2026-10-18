@@ -27,4 +27,11 @@ public interface ProspectingAuditRepository extends JpaRepository<ProspectingAud
      * Retorna registros de auditoria mais recentes com suporte a paginação/limite.
      */
     List<ProspectingAudit> findByOrderByDataEventoDesc(Pageable pageable);
+
+    /**
+     * Retorna registros de auditoria filtrados por segmento com suporte a paginação/limite.
+     * Caso o segmento seja 'CONTADORES', inclui registros com segmento nulo para compatibilidade retroativa.
+     */
+    @org.springframework.data.jpa.repository.Query("SELECT a FROM ProspectingAudit a WHERE (a.segmento = :segmento OR (:segmento = 'CONTADORES' AND a.segmento IS NULL)) ORDER BY a.dataEvento DESC")
+    List<ProspectingAudit> findBySegmentoOrderByDataEventoDesc(@org.springframework.data.repository.query.Param("segmento") String segmento, Pageable pageable);
 }

@@ -45,24 +45,32 @@ function renderMarkdown(md) {
     return text.replace(/\u0000(\d+)\u0000/g, (_, i) => blocks[Number(i)]);
 }
 
-const PanelChat = ({ isActive }) => {
+const PanelChat = ({
+    isActive,
+    assistantId = 'fillipo',
+    assistantName = 'Fillipo',
+    assistantRole = 'Especialista Comercial & B2B',
+    endpoint = '/chat/stream'
+}) => {
     const [messages, setMessages] = useState([]);
     const [inputText, setInputText] = useState('');
     const [isSending, setIsSending] = useState(false);
     const chatBoxRef = useRef(null);
 
-    // Get or generate UUID for conversation session
+    // Get or generate UUID for conversation session per assistant
     const getConversationId = () => {
-        let id = localStorage.getItem("conversationId");
+        const storageKey = `conversationId_${assistantId}`;
+        let id = localStorage.getItem(storageKey);
         if (!id) {
             id = generateUUID();
-            localStorage.setItem("conversationId", id);
+            localStorage.setItem(storageKey, id);
         }
         return id;
     };
 
     const startNewConversation = () => {
-        localStorage.setItem("conversationId", generateUUID());
+        const storageKey = `conversationId_${assistantId}`;
+        localStorage.setItem(storageKey, generateUUID());
         setMessages([]);
         setInputText('');
     };
@@ -115,7 +123,7 @@ const PanelChat = ({ isActive }) => {
         };
 
         try {
-            const response = await fetch("/chat/stream", {
+            const response = await fetch(endpoint, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -139,7 +147,6 @@ const PanelChat = ({ isActive }) => {
                 done = streamDone;
                 if (value) {
                     consumeSse(decoder.decode(value, { stream: true }), false);
-                    // Update state with ongoing bot response
                     setMessages(prev => prev.map(m => m.id === botMsgId ? { ...m, text: botText } : m));
                 }
             }
@@ -153,37 +160,60 @@ const PanelChat = ({ isActive }) => {
     };
 
     return (
-        <div className={`panel ${isActive ? 'active' : ''}`} id="panel-chat">
+        <div className={`panel panel-chat ${isActive ? 'active' : ''}`} id={`panel-chat-${assistantId}`}>
             <div style={{ display: 'flex', flexDirection: 'column', flex: 1, gap: '.75rem', padding: '1.25rem 1.75rem', overflow: 'hidden' }}>
-                <div className="chat-toolbar">
-                    <button className="btn-secondary" id="btn-new-chat" onClick={startNewConversation}>
+                <div className="chat-toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div className="chat-assistant-info" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                        <span style={{ fontSize: '1.25rem' }}>{assistantId === 'luiggi' ? '🚢' : '💼'}</span>
+                        <div>
+                            <strong style={{ fontSize: '1rem', color: 'var(--color-navy, #1e293b)' }}>{assistantName}</strong>
+                            <span style={{ fontSize: '0.85rem', color: '#64748b', marginLeft: '0.5rem' }}>• {assistantRole}</span>
+                        </div>
+                    </div>
+                    <button className="btn-secondary" id={`btn-new-chat-${assistantId}`} onClick={startNewConversation}>
                         + Nova conversa
                     </button>
                 </div>
-                <div id="chat-box" ref={chatBoxRef} style={{ flex: 1 }}>
-                    {messages.map((msg) => (
-                        <div key={msg.id} className={`msg ${msg.sender}`}>
-                            <div className="msg-label">{msg.sender === 'user' ? 'Você' : 'Atendente'}</div>
-                            {msg.sender === 'user' ? (
-                                <div className="msg-bubble">{msg.text}</div>
-                            ) : (
-                                <div className="msg-bubble" dangerouslySetInnerHTML={{ __html: renderMarkdown(msg.text) }} />
-                            )}
+                <div id={`chat-box-${assistantId}`} className="chat-box" ref={chatBoxRef} style={{ flex: 1 }}>
+                    {messages.length === 0 ? (
+                        <div style={{ textAlign: 'center', color: '#64748b', marginTop: '3rem', padding: '1rem' }}>
+                            <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>{assistantId === 'luiggi' ? '🚢' : '💼'}</div>
+                            <p style={{ fontSize: '1.15rem', fontWeight: 600, color: 'var(--color-navy, #1e293b)', marginBottom: '0.25rem' }}>
+                                Olá! Sou o {assistantName}.
+                            </p>
+                            <p style={{ fontSize: '0.9rem', marginBottom: '1rem' }}>{assistantRole}</p>
+                            <p style={{ fontSize: '0.85rem', color: '#94a3b8' }}>
+                                {assistantId === 'luiggi'
+                                    ? 'Estou aqui para ajudar a destravar fluxo de caixa em operações de importação e exportação.'
+                                    : 'Como posso ajudar com a antecipação de recebíveis da sua empresa hoje?'}
+                            </p>
                         </div>
-                    ))}
+                    ) : (
+                        messages.map((msg) => (
+                            <div key={msg.id} className={`msg ${msg.sender}`}>
+                                <div className="msg-label">{msg.sender === 'user' ? 'Você' : assistantName}</div>
+                                {msg.sender === 'user' ? (
+                                    <div className="msg-bubble">{msg.text}</div>
+                                ) : (
+                                    <div className="msg-bubble" dangerouslySetInnerHTML={{ __html: renderMarkdown(msg.text) }} />
+                                )}
+                            </div>
+                        ))
+                    )}
                 </div>
-                <form className="chat-form" id="chat-form" onSubmit={handleSubmit}>
+                <form className="chat-form" id={`chat-form-${assistantId}`} onSubmit={handleSubmit}>
                     <input
-                        id="chat-input"
+                        id={`chat-input-${assistantId}`}
+                        className="chat-input"
                         type="text"
-                        placeholder="Qual a sua dúvida?"
+                        placeholder={assistantId === 'luiggi' ? "Ex: Como destravar fluxo de caixa na importação?" : "Qual a sua dúvida?"}
                         autoComplete="off"
                         required
                         value={inputText}
                         onChange={(e) => setInputText(e.target.value)}
                         disabled={isSending}
                     />
-                    <button type="submit" id="btn-send" className="btn-send" disabled={isSending}>
+                    <button type="submit" id={`btn-send-${assistantId}`} className="btn-send" disabled={isSending}>
                         {isSending ? 'Enviando...' : 'Enviar'}
                     </button>
                 </form>
