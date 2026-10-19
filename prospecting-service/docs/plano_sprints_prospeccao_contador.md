@@ -149,7 +149,7 @@ Lógica:
   4. Retornar o texto da mensagem
 ```
 
-> **Nota:** Os arquivos [msg_contador_1.txt](file:///C:/Projetos/IA369/QR369-GCP/prospecting-service/src/main/resources/messages/msg_contador_1.txt) a [msg_contador_5.txt](file:///C:/Projetos/IA369/QR369-GCP/prospecting-service/src/main/resources/messages/msg_contador_5.txt) já existem em `src/main/resources/messages/`. Verificar encoding e conteúdo.
+> **Nota:** Os arquivos [msg_contador_1.txt](file:///C:/Projetos/IA369/QR369-GCP/prospecting-service/src/main/resources/messages/msg_contador_1.txt) a [msg_contador_6.txt](file:///C:/Projetos/IA369/QR369-GCP/prospecting-service/src/main/resources/messages/msg_contador_6.txt) já existem em `src/main/resources/messages/`. Verificar encoding e conteúdo.
 
 ### 2.4 Tratamento de Erros Z-API
 

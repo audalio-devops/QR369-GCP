@@ -66,6 +66,7 @@ services:
       ZAPI_INSTANCE_ID: ${ZAPI_INSTANCE_ID}
       ZAPI_TOKEN: ${ZAPI_TOKEN}
       ZAPI_CLIENT_TOKEN: ${ZAPI_CLIENT_TOKEN}
+      PROSPECTING_MESSAGE_COUNT: 6
     depends_on:
       db:
         condition: service_healthy

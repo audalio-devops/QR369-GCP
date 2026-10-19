@@ -37,6 +37,9 @@ public class ProspectingProcessed {
     @Column(length = 100)
     private String status;
 
+    @Column(name = "segmento", length = 50)
+    private String segmento;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 

@@ -14,7 +14,7 @@ import java.util.Random;
  * Serviço responsável por sortear e carregar as mensagens para contadores.
  *
  * Lógica:
- * 1. Sortear X entre 1 e {@code messageCount} (padrão: 5)
+ * 1. Sortear X entre 1 e {@code messageCount} (padrão: 6)
  * 2. Carregar classpath:messages/msg_contador_{X}.txt
  * 3. Retornar o texto da mensagem
  */
@@ -28,7 +28,7 @@ public class MessageService {
     private final Random random = new Random();
 
     public MessageService(
-            @Value("${prospecting.message.count:5}") int messageCount,
+            @Value("${prospecting.message.count:6}") int messageCount,
             @Value("${prospecting.message.path-pattern:messages/msg_contador_{X}.txt}") String messagePathPattern) {
         this.messageCount = messageCount;
         this.messagePathPattern = messagePathPattern;

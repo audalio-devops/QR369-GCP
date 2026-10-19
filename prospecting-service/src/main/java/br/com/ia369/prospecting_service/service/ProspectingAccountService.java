@@ -19,6 +19,7 @@ import java.time.DayOfWeek;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -62,10 +63,10 @@ public class ProspectingAccountService {
     private final ZApiClient zApiClient;
 
     @Value("${prospecting.working-hours.start:08:00}")
-    private String workingStart;
+    private String workingStart = "08:00";
 
     @Value("${prospecting.working-hours.end:16:40}")
-    private String workingEnd;
+    private String workingEnd = "16:40";
 
     @Value("${prospecting.interval.min:5}")
     private int intervalMin = 5;
@@ -164,7 +165,10 @@ public class ProspectingAccountService {
                 try {
                     boolean mensagemEnviada = processarLead(lead);
                     if (mensagemEnviada && (i + 1) < leads.size() && !shouldStop.get()) {
-                        aguardarIntervalo();
+                        boolean podeContinuar = aguardarIntervalo();
+                        if (!podeContinuar) {
+                            break;
+                        }
                     }
                 } catch (ZApiDisconnectedException ex) {
                     String cnpjLead = (lead != null) ? lead.getCnpj() : null;
@@ -316,6 +320,7 @@ public class ProspectingAccountService {
         processed.setEmail(lead.getEmail());
         processed.setRazaoSocial(lead.getRazaoSocial());
         processed.setTelefoneValido(telefoneValido);
+        processed.setSegmento(this.segmento);
         processedRepository.save(processed);
 
         // Enviar mensagem e registrar auditoria
@@ -325,6 +330,7 @@ public class ProspectingAccountService {
     private boolean enviarMensagem(String cnpj, String telefoneValido, ProspectingProcessed processed) {
         ProspectingAudit audit = new ProspectingAudit();
         audit.setCnpj(cnpj);
+        audit.setSegmento(this.segmento);
         audit.setDataEvento(LocalDateTime.now(ZONE_SP));
 
         try {
@@ -373,13 +379,69 @@ public class ProspectingAccountService {
         return !horaAtual.isBefore(inicio) && !horaAtual.isAfter(fim);
     }
 
-    private void aguardarIntervalo() {
+    protected boolean aguardarIntervalo() {
         int baseMin = (intervalMin > 0) ? intervalMin : 5;
         int t = baseMin + (random.nextInt(15) + 1); // Sortear T = 5 + Random(1..15) minutos
+        t = ajustarIntervaloParaLimiteHorario(t);
+
+        if (t <= 0) {
+            String msgEncerramento = "Horário limite (" + workingEnd + ") próximo e tempo restante até o corte (16:39) é inferior a " + baseMin + " min. Encerrando prospecção imediatamente.";
+            log.info(msgEncerramento);
+            registrarAuditoria("Finalizado", msgEncerramento, null);
+            return false;
+        }
+
         String msgEspera = "Aguardando " + t + " minuto(s) antes do próximo registro...";
         log.info(msgEspera);
         registrarAuditoria("Funcionando", msgEspera, null);
         executarEspera((long) t * 60 * 1000);
+        return true;
+    }
+
+    /**
+     * Ajusta o intervalo sorteado caso o próximo contato ultrapasse o horário limite final (workingEnd: 16:40).
+     * - Se ultrapassar 16:40 e a quantidade de minutos restantes até 16:39 for >= 5 min:
+     *     ajusta o intervalo para os minutos restantes (para processar às 16:39).
+     * - Se ultrapassar 16:40 e a quantidade de minutos restantes até 16:39 for < 5 min:
+     *     retorna 0 (indicando encerramento imediato do processamento, sem aguardar).
+     * - Se não ultrapassar 16:40:
+     *     mantém tSorteado.
+     *
+     * @param tSorteado quantidade sorteada de minutos
+     * @return quantidade ajustada de minutos, ou 0 para encerrar imediatamente
+     */
+    protected int ajustarIntervaloParaLimiteHorario(int tSorteado) {
+        return ajustarIntervaloParaLimiteHorario(tSorteado, LocalTime.now(ZONE_SP));
+    }
+
+    protected int ajustarIntervaloParaLimiteHorario(int tSorteado, LocalTime agora) {
+        try {
+            LocalTime fim = LocalTime.parse(workingEnd);
+            LocalTime limiteAjustado = fim.minusMinutes(1);
+
+            LocalTime agoraMinutos = agora.truncatedTo(ChronoUnit.MINUTES);
+            LocalTime contatoPrevisto = agoraMinutos.plusMinutes(tSorteado);
+
+            if (contatoPrevisto.isAfter(fim)) {
+                long minutosRestantes = ChronoUnit.MINUTES.between(agoraMinutos, limiteAjustado);
+                int limiteMinimo = (intervalMin > 0) ? intervalMin : 5;
+
+                if (minutosRestantes >= limiteMinimo) {
+                    log.info("Intervalo sorteado ({} min) às {} resultaria em contato às {}, ultrapassando o limite final ({}). " +
+                            "Ajustando para {} min para processar às {}.",
+                            tSorteado, agoraMinutos, contatoPrevisto, fim, minutosRestantes, limiteAjustado);
+                    return (int) minutosRestantes;
+                } else {
+                    log.info("Intervalo sorteado ({} min) às {} resultaria em contato às {}, ultrapassando o limite final ({}). " +
+                            "Tempo restante até {} ({} min) é inferior ao mínimo ({} min). Encerrando processamento imediatamente.",
+                            tSorteado, agoraMinutos, contatoPrevisto, fim, limiteAjustado, minutosRestantes, limiteMinimo);
+                    return 0;
+                }
+            }
+        } catch (Exception ex) {
+            log.warn("Falha ao ajustar intervalo para limite de horário: {}", ex.getMessage());
+        }
+        return tSorteado;
     }
 
     protected void executarEspera(long millis) {

@@ -4,6 +4,7 @@ import br.com.ia369.prospecting_service.client.ZApiClient;
 import br.com.ia369.prospecting_service.exception.ZApiDisconnectedException;
 import br.com.ia369.prospecting_service.model.ProspectingAudit;
 import br.com.ia369.prospecting_service.model.ProspectingDataSource;
+import br.com.ia369.prospecting_service.model.ProspectingProcessed;
 import br.com.ia369.prospecting_service.repository.ProspectingAuditRepository;
 import br.com.ia369.prospecting_service.repository.ProspectingDataSourceRepository;
 import br.com.ia369.prospecting_service.repository.ProspectingProcessedRepository;
@@ -16,6 +17,7 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -49,6 +51,9 @@ class ProspectingAccountServiceTest {
 
     @Captor
     private ArgumentCaptor<ProspectingAudit> auditCaptor;
+
+    @Captor
+    private ArgumentCaptor<ProspectingProcessed> processedCaptor;
 
     private ProspectingAccountService service;
     private List<Long> temposDeEspera;
@@ -114,7 +119,12 @@ class ProspectingAccountServiceTest {
 
         assertTrue(savedAudits.stream().anyMatch(a -> "Iniciado".equals(a.getStatus())));
         assertTrue(savedAudits.stream().anyMatch(a -> "Finalizado".equals(a.getStatus())));
+        assertTrue(savedAudits.stream().anyMatch(a -> "Ok".equals(a.getStatus()) && "CONTADORES".equals(a.getSegmento())));
         verify(zApiClient).sendTextMessage(eq("5511999998888"), anyString());
+
+        verify(processedRepository, atLeastOnce()).save(processedCaptor.capture());
+        ProspectingProcessed savedProcessed = processedCaptor.getValue();
+        assertEquals("CONTADORES", savedProcessed.getSegmento());
     }
 
     @Test
@@ -283,5 +293,90 @@ class ProspectingAccountServiceTest {
         ProspectingAudit audit = auditCaptor.getValue();
         assertEquals("Erro", audit.getStatus());
         assertEquals("Erro: Instância Web Z-API desconectada", audit.getLog());
+    }
+
+    @Test
+    @DisplayName("Deve ajustar intervalo sorteado para quantidade restante até 16:39 quando ultrapassa 16:40 e faltam >= 5 min (Ex: 16:28 + 15 -> 11)")
+    void testAjustarIntervaloQuandoUltrapassa1640EHaMaisDe5Minutos() {
+        LocalTime horaAtual = LocalTime.of(16, 28);
+        int sorteado = 15;
+
+        int ajustado = service.ajustarIntervaloParaLimiteHorario(sorteado, horaAtual);
+
+        assertEquals(11, ajustado, "Às 16:28 com sorteio de 15 min (previsto 16:43 > 16:40), deve ajustar para 11 min para processar às 16:39");
+    }
+
+    @Test
+    @DisplayName("Deve ajustar intervalo para exatamente 5 min quando faltam 5 min para 16:39 (Ex: 16:34 + 10 -> 5)")
+    void testAjustarIntervaloNoLimiteExatoDe5Minutos() {
+        LocalTime horaAtual = LocalTime.of(16, 34);
+        int sorteado = 10;
+
+        int ajustado = service.ajustarIntervaloParaLimiteHorario(sorteado, horaAtual);
+
+        assertEquals(5, ajustado, "Às 16:34 com sorteio de 10 min (previsto 16:44 > 16:40), deve ajustar para 5 min para processar às 16:39");
+    }
+
+    @Test
+    @DisplayName("Deve retornar 0 (encerrar imediatamente) quando ultrapassa 16:40 e faltam menos de 5 min para 16:39 (Ex: 16:35 + 10 -> 0)")
+    void testEncerrarImediatamenteQuandoRestamMenosDe5Minutos() {
+        LocalTime horaAtual = LocalTime.of(16, 35);
+        int sorteado = 10;
+
+        int ajustado = service.ajustarIntervaloParaLimiteHorario(sorteado, horaAtual);
+
+        assertEquals(0, ajustado, "Às 16:35 com sorteio de 10 min (previsto 16:45 > 16:40), faltam 4 min para 16:39 (< 5 min), portanto deve retornar 0 para encerrar imediatamente");
+    }
+
+    @Test
+    @DisplayName("aguardarIntervalo deve retornar false, não executar espera e registrar auditoria de Finalizado quando intervalo for 0")
+    void testAguardarIntervaloRetornaFalseQuandoTempoZero() {
+        ProspectingAccountService serviceSimulado = new ProspectingAccountService(
+                dataSourceRepository,
+                processedRepository,
+                auditRepository,
+                phoneValidationService,
+                messageService,
+                zApiClient) {
+            @Override
+            protected int ajustarIntervaloParaLimiteHorario(int tSorteado) {
+                return 0; // Simula encerramento imediato
+            }
+
+            @Override
+            protected void executarEspera(long millis) {
+                fail("Não deve chamar executarEspera quando o intervalo for 0");
+            }
+        };
+
+        boolean continuar = serviceSimulado.aguardarIntervalo();
+
+        assertFalse(continuar, "aguardarIntervalo deve retornar false quando t <= 0");
+        verify(auditRepository).save(auditCaptor.capture());
+        ProspectingAudit audit = auditCaptor.getValue();
+        assertEquals("Finalizado", audit.getStatus());
+        assertTrue(audit.getLog().contains("inferior"));
+    }
+
+    @Test
+    @DisplayName("Não deve ajustar intervalo quando o contato previsto não ultrapassa o limite final 16:40")
+    void testNaoAjustarIntervaloQuandoNaoUltrapassa1640() {
+        LocalTime horaAtual = LocalTime.of(16, 20);
+        int sorteado = 15; // 16:20 + 15 = 16:35 <= 16:40
+
+        int ajustado = service.ajustarIntervaloParaLimiteHorario(sorteado, horaAtual);
+
+        assertEquals(15, ajustado, "Contato às 16:35 não ultrapassa 16:40, logo mantém 15");
+    }
+
+    @Test
+    @DisplayName("Não deve alterar quando o próximo contato cai exatamente às 16:40 (dentro do horário)")
+    void testNaoAjustarIntervaloQuandoCaiExatamente1640() {
+        LocalTime horaAtual = LocalTime.of(16, 25);
+        int sorteado = 15; // 16:25 + 15 = 16:40 <= 16:40
+
+        int ajustado = service.ajustarIntervaloParaLimiteHorario(sorteado, horaAtual);
+
+        assertEquals(15, ajustado, "Contato às 16:40 ainda é permitido no limite final");
     }
 }
