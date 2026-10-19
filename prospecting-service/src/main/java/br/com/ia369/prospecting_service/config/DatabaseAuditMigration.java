@@ -76,7 +76,48 @@ public class DatabaseAuditMigration implements CommandLineRunner {
                             "    END IF; " +
                             "END $$;");
 
-            log.info("Ajuste de schema em prospecting_audit concluído com sucesso.");
+            // 5. Garantir coluna segmento em prospecting_processed
+            jdbcTemplate.execute(
+                    "DO $$ " +
+                            "BEGIN " +
+                            "    IF NOT EXISTS (" +
+                            "        SELECT 1 FROM information_schema.columns " +
+                            "        WHERE table_name = 'prospecting_processed' AND column_name = 'segmento'" +
+                            "    ) THEN " +
+                            "        ALTER TABLE prospecting_processed ADD COLUMN segmento VARCHAR(50); " +
+                            "        CREATE INDEX IF NOT EXISTS idx_processed_segmento ON prospecting_processed (segmento); " +
+                            "    END IF; " +
+                            "END $$;");
+
+            // 6. Atualizar retroativamente o segmento em prospecting_processed e prospecting_audit com base em prospecting_data_source
+            jdbcTemplate.execute(
+                    "UPDATE prospecting_processed pp " +
+                            "SET segmento = pds.segmento " +
+                            "FROM prospecting_data_source pds " +
+                            "WHERE pp.cnpj = pds.cnpj " +
+                            "  AND (pp.segmento IS NULL OR pp.segmento != pds.segmento) " +
+                            "  AND pds.segmento IS NOT NULL;");
+
+            jdbcTemplate.execute(
+                    "UPDATE prospecting_audit pa " +
+                            "SET segmento = pds.segmento " +
+                            "FROM prospecting_data_source pds " +
+                            "WHERE pa.cnpj = pds.cnpj " +
+                            "  AND (pa.segmento IS NULL OR pa.segmento != pds.segmento) " +
+                            "  AND pds.segmento IS NOT NULL;");
+
+            jdbcTemplate.execute(
+                    "UPDATE prospecting_audit " +
+                            "SET segmento = 'COMEX' " +
+                            "WHERE segmento IS NULL " +
+                            "  AND (log LIKE '%COMEX%' OR log LIKE '%Comércio Exterior%' OR log LIKE '%Luiggi%');");
+
+            jdbcTemplate.execute(
+                    "UPDATE prospecting_audit " +
+                            "SET segmento = 'CONTADORES' " +
+                            "WHERE segmento IS NULL;");
+
+            log.info("Ajuste de schema e sincronização de segmentos em prospecting concluídos com sucesso.");
         } catch (Exception ex) {
             log.warn("Aviso na verificação de schema do prospecting_audit: {}", ex.getMessage());
         }

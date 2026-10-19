@@ -23,6 +23,9 @@ public class ImportacaoService {
     @Autowired
     private ResourceLoader resourceLoader;
 
+    @org.springframework.beans.factory.annotation.Value("${prospecting.segmento:CONTADORES}")
+    private String segmento;
+
     public ImportacaoResponse processarArquivo(int tipo) {
         String filePath = (tipo == 1) ? "classpath:data_sources/ds_cnpj.csv" : "classpath:data_sources/ds_razao_social.csv";
         Resource resource = resourceLoader.getResource(filePath);
@@ -42,6 +45,7 @@ public class ImportacaoService {
                 String[] fields = line.split(",", -1);
                 ProspectingDataSource dataSource = new ProspectingDataSource();
                 dataSource.setPrioridade(1);
+                dataSource.setSegmento(this.segmento);
 
                 if (tipo == 1) {
                     // Importa se tiver pelo menos um CNPJ
