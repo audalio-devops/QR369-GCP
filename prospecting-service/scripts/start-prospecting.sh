@@ -2,7 +2,7 @@
 # =============================================================================
 # start-prospecting.sh
 # Dispara o endpoint de prospecção de contadores.
-# Agendado via cron: toda segunda-feira às 08:00.
+# Agendado via cron: segunda a sexta às 08:00.
 # =============================================================================
 
 SERVICE_URL="http://localhost:8081/prospecting-account"

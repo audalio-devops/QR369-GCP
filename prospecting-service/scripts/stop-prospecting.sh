@@ -2,7 +2,7 @@
 # =============================================================================
 # stop-prospecting.sh
 # Sinaliza a parada da prospecção de contadores.
-# Agendado via cron: toda sexta-feira às 18:00.
+# Agendado via cron: segunda a sexta às 17:00.
 # =============================================================================
 
 SERVICE_URL="http://localhost:8081/prospecting-account"
