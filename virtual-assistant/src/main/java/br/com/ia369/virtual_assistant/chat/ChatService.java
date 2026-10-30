@@ -36,11 +36,32 @@ public class ChatService {
         logger.info("[conversationId={}] Iniciando chat (mensagem com {} caracteres)",
                 targetConvId, message.length());
 
-        return chatClient.prompt()
-                .user(message)
-                .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, targetConvId))
-                .call()
-                .content();
+        try {
+            var responseSpec = chatClient.prompt()
+                    .user(message)
+                    .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, targetConvId))
+                    .call();
+
+            String response = responseSpec.content();
+
+            if (response == null || response.isBlank()) {
+                logger.warn("[conversationId={}] call().content() retornou vazio! Recuperando resposta via stream...", targetConvId);
+                var chunks = stream(message, targetConvId).collectList().block();
+                response = chunks != null ? String.join("", chunks) : "";
+            }
+
+            logger.info("[conversationId={}] Chat finalizado com sucesso (resposta com {} caracteres)",
+                    targetConvId, response != null ? response.length() : 0);
+            return response;
+        } catch (Exception e) {
+            logger.error("[conversationId={}] Erro ao processar chat síncrono via call(): {}. Tentando fallback para stream...",
+                    targetConvId, e.getMessage(), e);
+            var chunks = stream(message, targetConvId).collectList().block();
+            String response = chunks != null ? String.join("", chunks) : "";
+            logger.info("[conversationId={}] Resposta recuperada via fallback de stream ({} caracteres)",
+                    targetConvId, response.length());
+            return response;
+        }
     }
 
     public Flux<String> stream(String message, String conversationId) {
