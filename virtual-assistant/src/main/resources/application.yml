@@ -26,7 +26,7 @@ app:
     id: ${ASSISTANT_ID:fillipo}
   prompt:
     context-resource: ${APP_PROMPT_CONTEXT_RESOURCE:classpath:/prompts/context-prompt.st}
-    system-resource: ${APP_PROMPT_SYSTEM_RESOURCE:}
+    system-resource: ${APP_PROMPT_SYSTEM_RESOURCE:classpath:/prompts/system-prompt.st}
   auth:
     username: ${LOGIN_USR}
     password: ${LOGIN_PWD}

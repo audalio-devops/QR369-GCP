@@ -16,16 +16,17 @@ public class VirtualAssistantClient {
 
     private final RestClient restClient;
 
+    @org.springframework.beans.factory.annotation.Autowired
     public VirtualAssistantClient(
             @Value("${virtual-assistant.base-url:http://localhost:8080}") String baseUrl,
-            RestClient.Builder restClientBuilder) {
-        this.restClient = restClientBuilder
-                .baseUrl(baseUrl)
-                .build();
-    }
-
-    public VirtualAssistantClient(String baseUrl) {
-        this(baseUrl, RestClient.builder());
+            @org.springframework.beans.factory.annotation.Autowired(required = false) RestClient.Builder restClientBuilder) {
+        if (restClientBuilder != null) {
+            this.restClient = restClientBuilder
+                    .baseUrl(baseUrl)
+                    .build();
+        } else {
+            this.restClient = RestClient.create(baseUrl);
+        }
     }
 
     public void recordInitialContact(String phone, String message) {

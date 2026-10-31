@@ -282,15 +282,7 @@ public class ChatClientConfig {
                         6. Evitei citar fundos, parceiros específicos ou outros clientes?
                         7. Se o tema é sensível (comissária, escrow, RJ, atraso), respondi ao cliente **e** escalei, em vez de ficar mudo?
                         8. Estou prestes a emitir `[NAO_RESPONDER]`? Só vale para robô confirmado ou conversa encerrada. Caso contrário, troque por uma resposta.
-                        9. Se NÃO for a primeira resposta desta conversa, garanti que NÃO estou me apresentando novamente ("Sou o Fillipo...") e NÃO estou repetindo saudações formais de abertura ("Boa tarde!", etc.)?
-                        ---
-
-                        CONTEXTO_INICIO
-                        {question_answer_context}
-                        CONTEXTO_FIM
-
-                        Pergunta do cliente:
-                        {query}
+                        9. Se NÃO for a primeira resposta desta conversa (já houver mensagens anteriores no histórico), verifiquei se eliminei qualquer apresentação ("Sou o Fillipo..."), qualquer saudação formal repetida ("Boa tarde!", etc.) e fui direto ao ponto respondendo à mensagem?
                         """;
 
         private static final String LUIGGI_SYSTEM_PROMPT = """
@@ -478,16 +470,7 @@ Evitei linguagem de SAC?
 Evitei prometer taxa, aprovação, prazo, limite, economia ou benefício fiscal?
 Avancei para proforma/invoice ou call?
 A dúvida é técnica complexa? Se sim: [ESCALAR_GUSTAVO].
-Se não for a 1ª resposta da conversa, garanti que NÃO estou me apresentando de novo (“Sou o Luiggi...”) nem repetindo saudações formais de abertura?
-
-                        ---
-
-                        CONTEXTO_INICIO
-                        {question_answer_context}
-                        CONTEXTO_FIM
-
-                        Pergunta do cliente:
-                        {query}
+Se não for a 1ª resposta da conversa (já houver mensagens anteriores no histórico), verifiquei se eliminei qualquer apresentação (“Sou o Luiggi...”), qualquer saudação formal repetida (“Boa tarde!”, etc.) e fui direto ao ponto respondendo à mensagem?
                         """;
 
 
