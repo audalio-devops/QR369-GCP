@@ -1,7 +1,9 @@
 package br.com.ia369.virtual_assistant.chat;
 
 import br.com.ia369.virtual_assistant.chat.dto.ChatRequest;
+import br.com.ia369.virtual_assistant.chat.dto.InitialContactRequest;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -22,5 +24,15 @@ public class ChatController {
             @RequestBody ChatRequest request,
             @RequestHeader("X-Conversation-Id") String conversationId) {
         return chatService.stream(request.message(), conversationId);
+    }
+
+    @PostMapping("/chat/initial-contact")
+    public ResponseEntity<Void> recordInitialContact(@RequestBody InitialContactRequest request) {
+        if (request == null || request.targetId() == null || request.targetId().isBlank()
+                || request.message() == null || request.message().isBlank()) {
+            return ResponseEntity.badRequest().build();
+        }
+        chatService.recordAssistantMessageIfNotPresent(request.targetId(), request.message());
+        return ResponseEntity.ok().build();
     }
 }

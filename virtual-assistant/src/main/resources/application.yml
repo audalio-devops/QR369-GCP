@@ -18,7 +18,7 @@ spring:
         redis:
           host: ${VA_REDIS_HOST:localhost}
           port: ${VA_REDIS_PORT:6379}
-          time-to-live: PT30M # a conversa expira apos 30 min de inatividade
+          time-to-live: ${VA_REDIS_TTL:P7D} # a conversa expira apos 7 dias de inatividade (configuravel)
 
 # bloco proprio do projeto (nao e do framework)
 app:

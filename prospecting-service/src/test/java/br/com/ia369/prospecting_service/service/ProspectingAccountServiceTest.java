@@ -1,5 +1,6 @@
 package br.com.ia369.prospecting_service.service;
 
+import br.com.ia369.prospecting_service.client.VirtualAssistantClient;
 import br.com.ia369.prospecting_service.client.ZApiClient;
 import br.com.ia369.prospecting_service.exception.ZApiDisconnectedException;
 import br.com.ia369.prospecting_service.model.ProspectingAudit;
@@ -49,6 +50,9 @@ class ProspectingAccountServiceTest {
     @Mock
     private ZApiClient zApiClient;
 
+    @Mock
+    private VirtualAssistantClient virtualAssistantClient;
+
     @Captor
     private ArgumentCaptor<ProspectingAudit> auditCaptor;
 
@@ -67,7 +71,8 @@ class ProspectingAccountServiceTest {
                 auditRepository,
                 phoneValidationService,
                 messageService,
-                zApiClient) {
+                zApiClient,
+                virtualAssistantClient) {
             @Override
             protected void executarEspera(long millis) {
                 temposDeEspera.add(millis);
@@ -121,6 +126,7 @@ class ProspectingAccountServiceTest {
         assertTrue(savedAudits.stream().anyMatch(a -> "Finalizado".equals(a.getStatus())));
         assertTrue(savedAudits.stream().anyMatch(a -> "Ok".equals(a.getStatus()) && "CONTADORES".equals(a.getSegmento())));
         verify(zApiClient).sendTextMessage(eq("5511999998888"), anyString());
+        verify(virtualAssistantClient).recordInitialContact(eq("5511999998888"), anyString());
 
         verify(processedRepository, atLeastOnce()).save(processedCaptor.capture());
         ProspectingProcessed savedProcessed = processedCaptor.getValue();
@@ -337,7 +343,8 @@ class ProspectingAccountServiceTest {
                 auditRepository,
                 phoneValidationService,
                 messageService,
-                zApiClient) {
+                zApiClient,
+                virtualAssistantClient) {
             @Override
             protected int ajustarIntervaloParaLimiteHorario(int tSorteado) {
                 return 0; // Simula encerramento imediato

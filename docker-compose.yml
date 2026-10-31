@@ -67,6 +67,7 @@ services:
       ZAPI_TOKEN: ${ZAPI_TOKEN}
       ZAPI_CLIENT_TOKEN: ${ZAPI_CLIENT_TOKEN}
       PROSPECTING_MESSAGE_COUNT: 6
+      VA_BASE_URL: http://virtual-assistant:8080
     depends_on:
       db:
         condition: service_healthy
@@ -130,6 +131,7 @@ services:
       PROSPECTING_MESSAGE_COUNT: 8
       PROSPECTING_MESSAGE_PATH_PATTERN: messages/luiggi/msg_luiggi_{X}.txt
       PROSPECTING_SEGMENTO: COMEX
+      VA_BASE_URL: http://virtual-assistant-luiggi:8084
     depends_on:
       db:
         condition: service_healthy

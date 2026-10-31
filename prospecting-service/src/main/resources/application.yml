@@ -40,4 +40,7 @@ zapi:
   token: ${ZAPI_TOKEN}
   client-token: ${ZAPI_CLIENT_TOKEN}
 
+virtual-assistant:
+  base-url: ${VA_BASE_URL:http://localhost:8080}
+
 

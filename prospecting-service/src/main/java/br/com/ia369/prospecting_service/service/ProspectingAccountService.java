@@ -1,5 +1,6 @@
 package br.com.ia369.prospecting_service.service;
 
+import br.com.ia369.prospecting_service.client.VirtualAssistantClient;
 import br.com.ia369.prospecting_service.client.ZApiClient;
 import br.com.ia369.prospecting_service.exception.ZApiDisconnectedException;
 import br.com.ia369.prospecting_service.model.ProspectingAudit;
@@ -61,6 +62,7 @@ public class ProspectingAccountService {
     private final PhoneValidationService phoneValidationService;
     private final MessageService messageService;
     private final ZApiClient zApiClient;
+    private final VirtualAssistantClient virtualAssistantClient;
 
     @Value("${prospecting.working-hours.start:08:00}")
     private String workingStart = "08:00";
@@ -85,13 +87,15 @@ public class ProspectingAccountService {
             ProspectingAuditRepository auditRepository,
             PhoneValidationService phoneValidationService,
             MessageService messageService,
-            ZApiClient zApiClient) {
+            ZApiClient zApiClient,
+            VirtualAssistantClient virtualAssistantClient) {
         this.dataSourceRepository = dataSourceRepository;
         this.processedRepository = processedRepository;
         this.auditRepository = auditRepository;
         this.phoneValidationService = phoneValidationService;
         this.messageService = messageService;
         this.zApiClient = zApiClient;
+        this.virtualAssistantClient = virtualAssistantClient;
     }
 
     /**
@@ -336,6 +340,13 @@ public class ProspectingAccountService {
         try {
             String mensagem = messageService.sortearMensagem();
             zApiClient.sendTextMessage(telefoneValido, mensagem);
+
+            // Registrar mensagem inicial no Redis através do virtual-assistant
+            try {
+                virtualAssistantClient.recordInitialContact(telefoneValido, mensagem);
+            } catch (Exception ex) {
+                log.warn("CNPJ {}: Mensagem enviada pelo WhatsApp, mas falha ao registrar no virtual-assistant: {}", cnpj, ex.getMessage());
+            }
 
             // Sucesso: atualizar registro processado
             processed.setDataContato(LocalDateTime.now(ZONE_SP));

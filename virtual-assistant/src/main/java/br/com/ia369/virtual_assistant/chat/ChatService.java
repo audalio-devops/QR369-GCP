@@ -1,9 +1,12 @@
 package br.com.ia369.virtual_assistant.chat;
 
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.memory.ChatMemory;
+import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.ai.chat.messages.Message;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
@@ -13,12 +16,14 @@ public class ChatService {
     private static final Logger logger = LoggerFactory.getLogger(ChatService.class);
 
     private final ChatClient chatClient;
+    private final ChatMemory chatMemory;
 
     @org.springframework.beans.factory.annotation.Value("${app.assistant.id:fillipo}")
     private String assistantId;
 
-    public ChatService(ChatClient chatClient) {
+    public ChatService(ChatClient chatClient, ChatMemory chatMemory) {
         this.chatClient = chatClient;
+        this.chatMemory = chatMemory;
     }
 
     private String resolveConversationId(String rawId) {
@@ -77,5 +82,35 @@ public class ChatService {
                         targetConvId))
                 .doOnError(error -> logger.error("[conversationId={}] Erro durante o stream de chat: {}",
                         targetConvId, error.getMessage(), error));
+    }
+
+    public void recordAssistantMessageIfNotPresent(String conversationId, String messageText) {
+        if (messageText == null || messageText.isBlank()) {
+            return;
+        }
+        String targetConvId = resolveConversationId(conversationId);
+        try {
+            List<Message> existing = chatMemory.get(targetConvId);
+            boolean alreadyPresent = false;
+            if (existing != null) {
+                for (Message msg : existing) {
+                    if (messageText.trim().equalsIgnoreCase(msg.getText() != null ? msg.getText().trim() : "")) {
+                        alreadyPresent = true;
+                        break;
+                    }
+                }
+            }
+            if (!alreadyPresent) {
+                chatMemory.add(targetConvId, List.of(new AssistantMessage(messageText)));
+                logger.info("[conversationId={}] Mensagem inicial do assistente registrada no Redis com sucesso ({} caracteres)",
+                        targetConvId, messageText.length());
+            } else {
+                logger.info("[conversationId={}] Mensagem do assistente já presente no histórico do Redis para esta conversa",
+                        targetConvId);
+            }
+        } catch (Exception e) {
+            logger.error("[conversationId={}] Erro ao registrar mensagem do assistente no Redis: {}",
+                    targetConvId, e.getMessage(), e);
+        }
     }
 }

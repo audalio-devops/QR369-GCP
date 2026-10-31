@@ -1,5 +1,6 @@
 package br.com.ia369.virtual_assistant.whatsapp;
 
+import br.com.ia369.virtual_assistant.chat.ChatService;
 import br.com.ia369.virtual_assistant.whatsapp.dto.ZApiWebhookPayload;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,15 +18,26 @@ public class WhatsAppWebhookController {
 
     private final WebhookProtectionService webhookProtectionService;
     private final WhatsAppMessageProcessorService messageProcessorService;
+    private final ChatService chatService;
 
     public WhatsAppWebhookController(WebhookProtectionService webhookProtectionService,
-                                     WhatsAppMessageProcessorService messageProcessorService) {
+                                     WhatsAppMessageProcessorService messageProcessorService,
+                                     ChatService chatService) {
         this.webhookProtectionService = webhookProtectionService;
         this.messageProcessorService = messageProcessorService;
+        this.chatService = chatService;
     }
 
     @PostMapping
     public ResponseEntity<Void> receiveMessage(@RequestBody ZApiWebhookPayload payload) {
+        if (payload != null && payload.isFromMe()) {
+            if (payload.phone() != null && !payload.phone().isBlank() && payload.isText()) {
+                logger.info("📥 [fromMe=true] Mensagem enviada pelo bot/atendente detectada para telefone {}. Verificando registro no Redis...", payload.phone());
+                chatService.recordAssistantMessageIfNotPresent(payload.phone(), payload.messageData().message());
+            }
+            return ResponseEntity.ok().build();
+        }
+
         if (!webhookProtectionService.isAllowed(payload)) {
             return ResponseEntity.ok().build();
         }
