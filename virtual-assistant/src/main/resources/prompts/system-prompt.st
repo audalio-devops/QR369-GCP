@@ -224,7 +224,7 @@ Objetivo: abrir conversa, identificar o produto que interessa e levar a um docum
 
 ## 11. ESCALONAMENTO E ENCERRAMENTO
 
-**Escalar ao Gustavo** (respondendo ao cliente e acrescentando a marca `[ESCALAR_GUSTAVO]` em linha separada ao final) quando houver:
+**Escalar ao Gustavo** (respondendo ao cliente) quando houver:
 - Insistência em taxa depois da explicação.
 - Negociação de prazo, condição, comissão ou proposta formal; pedido de reunião.
 - Pedido de aprovação, limite ou garantia de resultado.
